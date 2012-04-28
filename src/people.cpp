@@ -1,4 +1,74 @@
-#include "people.h"
+#include <ros/ros.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <sensor_msgs/Image.h>
+#include <cv.h>
+#include <highgui.h>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <std_msgs/String.h>
+#include <string.h>
+#include <cxcore.h>
+#include <cvaux.h>
+#include <stdlib.h>
+
+//#define RGB
+using namespace std;
+using namespace cv;
+using namespace cv_bridge;
+
+#define MAX_FACES 10
+#define TOPIC_CONTROL "/cmd_state"
+#define nTestfaces 10
+
+IplImage* imgRGB = cvCreateImage( cvSize(1280,1024),IPL_DEPTH_8U, 3 );
+IplImage* img = cvCreateImage( cvSize(1280,1024),IPL_DEPTH_8U, 1 );
+cv::Mat depthImg ;
+cv_bridge::CvImagePtr bridge;
+IplImage ** faceImgArr        = 0; // array of face images
+CvMat    *  personNumTruthMat = 0; // array of person numbers
+int nTrainFaces               = 0; // the number of training images
+int nEigens                   = 0; // the number of eigenvalues
+IplImage * pAvgTrainImg       = 0; // the average image
+IplImage ** eigenVectArr      = 0; // eigenvectors
+CvMat * eigenValMat           = 0; // eigenvalues
+CvMat * projectedTrainFaceMat = 0; // projected training faces
+IplImage * faceImg;
+int faceCount = 0;
+int chkSave = 0; // check for can save !?
+int nNames = 0;
+char name[100];
+double min_range_;
+double max_range_;
+float dist[1280][1024];
+int canPrintDepth = 0; // บางทีค่า depth มันมาช้ากว่า RGB พอเฟรมแรกแมร่งก็พัง ><
+int haveFace = 0;
+int g_nearest[20];
+int g_count = 0;
+int is_recog = 0;
+int is_init = 0;
+
+void convertmsg2img(const sensor_msgs::ImageConstPtr& msg);
+IplImage * detect_people();
+//// Function prototypes
+void learn();
+void recognize();
+void doPCA();
+void storeTrainingData();
+int  loadTrainingData(CvMat ** pTrainPersonNumMat);
+int  findNearestNeighbor(float * projectedTestFace);
+int  loadFaceImgArray(char * filename);
+void printUsage();
+IplImage* cropImage(const IplImage *img, const CvRect region);
+IplImage* resizeImage(const IplImage *origImg, int newWidth, int newHeight);
+IplImage* convertFloatImageToUcharImage(const IplImage *srcImg);
+void saveFloatImage(const char *filename, const IplImage *srcImg);
+void recognize_realtime();
+
+int isSkin(CvRect *r);
+unsigned minRGB(unsigned char r,unsigned char g,unsigned b);
+unsigned maxRGB(unsigned char r,unsigned char g,unsigned b);
 
 
 void kinectCallBack(const sensor_msgs::ImageConstPtr& msg)
@@ -7,39 +77,110 @@ void kinectCallBack(const sensor_msgs::ImageConstPtr& msg)
   	cvEqualizeHist(img,img);
 	haveFace = 0;
   	//detect_face("cup.xml");
-  	detect_face();
+  	detect_face("haarcascade_frontalface_alt.xml");
   	if(is_recog){
+		//g_count++;
 	    recognize_realtime();
 	}
   	cvShowImage("test",img);
   	cv::waitKey(10);
 }
 
-int main()
+void depthCb( const sensor_msgs::ImageConstPtr& image )
 {
-	  ros::init(argc,argv,"faces");
-	  ros::NodeHandle n;
-	  ros::NodeHandle nh("~");
-	  nh.param("min_range", min_range_, 0.5);
-	  nh.param("max_range", max_range_, 5.5);
-	  ros::Subscriber sub = n.subscribe("/camera/rgb/image_mono", 1, kinectCallBack);
-	  ros::Subscriber sub2 = n.subscribe(TOPIC_CONTROL, 1, controlCallBack);
-	  ros::Subscriber subDepth = n.subscribe("/camera/depth/image",1,depthCb);
+	canPrintDepth = 0;
+    try
+    {
+        bridge = cv_bridge::toCvCopy(image, "32FC1");
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("Failed to transform depth image.");
+        return;
+    }
+    depthImg = Mat(bridge->image.rows, bridge->image.cols, CV_8UC1);
+    for(int i = 0; i < bridge->image.rows; i++)
+    {
+        float* Di = bridge->image.ptr<float>(i);
+        char* Ii = depthImg.ptr<char>(i);
+        for(int j = 0; j < bridge->image.cols; j++)
+        {
+            Ii[j] = (char) (255*((Di[j]-min_range_)/(max_range_-min_range_)));
+            dist[i][j] = Di[j];
+        }
+    }
+    canPrintDepth = 1;
+}
 
-	  ros::spin();
+void controlCallBack(const std_msgs::String::ConstPtr& msg)
+{
+  ROS_INFO("%s",msg->data.c_str());
+
+  if(!strcmp(msg->data.c_str(),"test"))
+  {
+ 	is_recog = 1;
+    return ;
+  }
+
+  chkSave = 1;
+  FILE * imgListFile;
+
+  while( !(imgListFile = fopen("./data/names.txt", "a+")) )
+  {
+          printf("don't have train.txt , i will creater new file\n");
+          system("touch ./data/names.txt");
+  }
+  strcpy(name,msg->data.c_str());
+  fprintf(imgListFile,"%d %s\n",nNames,name);
+  fclose(imgListFile);
+}
+
+
+int main(int argc,char * argv[])
+{
+  FILE * imgListFile = 0;
+  ros::init(argc,argv,"faces");
+  ros::NodeHandle n;
+  ros::NodeHandle nh("~");
+  nh.param("min_range", min_range_, 0.5);
+  nh.param("max_range", max_range_, 5.5);
+  ros::Subscriber sub = n.subscribe("/camera/rgb/image_color", 1, kinectCallBack);
+  ros::Subscriber sub2 = n.subscribe(TOPIC_CONTROL, 1, controlCallBack);
+  ros::Subscriber subDepth = n.subscribe("/camera/depth/image",1,depthCb);
+	//detect_state = n.adverstise<std_msgs::String>("detect_state",10);
+  while( !(imgListFile = fopen("data/names.txt", "a+")) )
+  {
+          fprintf(stderr, "Can\'t open file %s\n", "names.txt");
+          system("touch ./data/name.txt");
+          //return 0;
+  }
+
+  // count the number of faces
+  char tmp[20];
+  while( fgets(tmp, 512, imgListFile) ) ++nNames;
+
+  printf("pass\n");
+  learn();
+  is_init = 1;
+  ros::spin();
 }
 
 void convertmsg2img(const sensor_msgs::ImageConstPtr& msg)
 {
 	for(int i=0;i<1280*1024;i++)
 		{
-			img->imageData[i] = msg->data[i];
+			imgRGB->imageData[i*3] = msg->data[i*3+2];
+			imgRGB->imageData[i*3+1] = msg->data[i*3+1];
+			imgRGB->imageData[i*3+2] = msg->data[i*3];
     }
 	cvCvtColor ( imgRGB , img , CV_RGB2GRAY );
 }
 
 //===================================================================================================================
-IplImage * detect_people(){
+IplImage * detect_face(char filename[]){
+
+  	CvMemStorage *storage = cvCreateMemStorage( 0 );
+  	CvHaarClassifierCascade *cascade  = ( CvHaarClassifierCascade* )cvLoad( filename ,0 , 0, 0 );
   	CvRect *r = 0;
 
   	if(cascade == NULL)
@@ -114,7 +255,65 @@ IplImage * detect_people(){
   	if(cascade) cvReleaseHaarClassifierCascade(&cascade);
   	return faceImg;
 }
+IplImage* cropImage(const IplImage *img, const CvRect region)
+{
+        IplImage *imageTmp;
+        IplImage *imageRGB;
+        CvSize size;
+        size.height = img->height;
+        size.width = img->width;
 
+        if (img->depth != IPL_DEPTH_8U) {
+                printf("ERROR in cropImage: Unknown image depth of %d given in cropImage() instead of 8 bits per pixel.\n", img->depth);
+                exit(1);
+        }
+
+        // First create a new (color or greyscale) IPL Image and copy contents of img into it.
+        imageTmp = cvCreateImage(size, IPL_DEPTH_8U, img->nChannels);
+        cvCopy(img, imageTmp, NULL);
+
+        // Create a new image of the detected region
+        // Set region of interest to that surrounding the face
+        cvSetImageROI(imageTmp, region);
+        // Copy region of interest (i.e. face) into a new iplImage (imageRGB) and return it
+        size.width = region.width;
+        size.height = region.height;
+        imageRGB = cvCreateImage(size, IPL_DEPTH_8U, img->nChannels);
+        cvCopy(imageTmp, imageRGB, NULL);       // Copy just the region.
+
+    cvReleaseImage( &imageTmp );
+        return imageRGB;
+}
+
+IplImage* resizeImage(const IplImage *origImg, int newWidth, int newHeight)
+{
+        IplImage *outImg = 0;
+        int origWidth;
+        int origHeight;
+        if (origImg) {
+                origWidth = origImg->width;
+                origHeight = origImg->height;
+        }
+        if (newWidth <= 0 || newHeight <= 0 || origImg == 0 || origWidth <= 0 || origHeight <= 0) {
+                printf("ERROR in resizeImage: Bad desired image size of %dx%d\n.", newWidth, newHeight);
+                exit(1);
+        }
+
+        // Scale the image to the new dimensions, even if the aspect ratio will be changed.
+        outImg = cvCreateImage(cvSize(newWidth, newHeight), origImg->depth, origImg->nChannels);
+        if (newWidth > origImg->width && newHeight > origImg->height) {
+                // Make the image larger
+                cvResetImageROI((IplImage*)origImg);
+                cvResize(origImg, outImg, CV_INTER_LINEAR);     // CV_INTER_CUBIC or CV_INTER_LINEAR is good for enlarging
+        }
+        else {
+                // Make the image smaller
+                cvResetImageROI((IplImage*)origImg);
+                cvResize(origImg, outImg, CV_INTER_AREA);       // CV_INTER_AREA is good for shrinking / decimation, but bad at enlarging.
+        }
+
+        return outImg;
+}
 void learn()
 {
         int i, offset;
@@ -129,7 +328,11 @@ void learn()
                         "Input file contains only %d\n", nTrainFaces);
                 return;
         }
+        //printf("debug : learn() , load image");
+        // do PCA on the training faces
         doPCA();
+
+        // project the training images onto the PCA subspace
         projectedTrainFaceMat = cvCreateMat( nTrainFaces, nEigens, CV_32FC1 );
         offset = projectedTrainFaceMat->step / sizeof(float);
         for(i=0; i<nTrainFaces; i++)
@@ -145,22 +348,33 @@ void learn()
 
 
         }
+        //cvShowImage("eigen_face",eigenVectArr[0]);
+/*		for(int i = 0; i<nTrainFaces;i++)
+		{
+			char filename[25];
+			sprintf(filename,"data/eigen_pond%d.pgm",i);
+			saveFloatImage(filename,eigenVectArr[i]);
+		}
+		saveFloatImage("data/AvgImg.pgm",pAvgTrainImg);
+        // store the recognition data as an xml file */
     storeTrainingData();
 	if(is_init)
 	{
+		//detect_state.publish("next");
     	system("espeak --stdout \'now i remember you\' | aplay");
 		nNames++;
 	}
 	printf("debug segment.. \n");
 }
 
-void recognize()
+void recognize_realtime()
 {
   int i, nTestFaces  = 0;         // the number of test images
   CvMat * trainPersonNumMat = 0;  // the person numbers during training
   float * projectedTestFace = 0;
   if(!haveFace)
   {
+		 //printf("count : %d\n",g_count--);
 		 return ;
   }
   g_count++;
@@ -417,3 +631,57 @@ IplImage* convertFloatImageToUcharImage(const IplImage *srcImg)
 	return dstImg;
 }
 
+
+unsigned maxRGB(unsigned char r,unsigned char g,unsigned b)
+{
+	if ( r >= g && r >= b )
+		return r;
+	if ( g >= r && g >=b )
+		return g;
+	return b;
+}
+// function for use in skin detection
+unsigned minRGB(unsigned char r,unsigned char g,unsigned b)
+{
+	if ( r <= g && r <= b )
+		return r;
+	if ( g <= r && g <=b )
+		return g;
+	return b;
+}
+
+int isSkin(CvRect *r)
+{
+	return 1;
+	int SkinCount = 0;
+	unsigned char max = 0 ;
+	unsigned char min = 252;
+	IplImage * tmp = cropImage(imgRGB,*r);
+	//faceImg = cropImage(img, *r);
+  	//faceImg = resizeImage(faceImg,100,100);
+	for(int i=0;i< r->width * r->height ; i++)
+	{
+		unsigned char b = tmp->imageData[i*3];
+		unsigned char g = tmp->imageData[i*3+1];
+		unsigned char r = tmp->imageData[i*3+2];
+		if( 	r > 95  // RED
+			&&	g > 40 // GREEN
+			&& 	b > 20 // BLUE
+			&& 	maxRGB(r,g,b) - minRGB(r,g,b) > 5
+			&&	abs(r-g) > 15
+			&& 	r > g && r > b
+			)
+		{
+			SkinCount++;
+			for( int t = 0; t< 3; t ++ ) tmp->imageData[i*3+t] = 0 ;
+		}
+	}
+	//cvShowImage("tmp",tmp);
+	if ( SkinCount*1.0f / ( r->width*r->height) > 0.05f )
+	{
+		cvReleaseImage(&tmp);
+		return 1;
+	}
+	else printf("no skin human !! %.2f\n" , SkinCount*1.0f / ( r->width*r->height));
+	return 0;
+}

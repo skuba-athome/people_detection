@@ -1,0 +1,14 @@
+#include <ros/ros.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <sensor_msgs/Image.h>
+#include <cv.h>
+#include <highgui.h>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <std_msgs/String.h>
+#include <string.h>
+#include <cxcore.h>
+#include <cvaux.h>
+#include <stdlib.h>

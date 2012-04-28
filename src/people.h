@@ -12,3 +12,15 @@
 #include <cxcore.h>
 #include <cvaux.h>
 #include <stdlib.h>
+
+/***************************************************************/
+using namespace std;
+using namespace cv;
+using namespace cv_bridge;
+
+double min_range_;
+double max_range_;
+float dist[1280][1024];
+int canPrintDepth = 0; // บางทีค่า depth มันมาช้ากว่า RGB พอเฟรมแรกแมร่งก็พัง ><
+
+IplImage* img = cvCreateImage( cvSize(1280,1024),IPL_DEPTH_8U, 1 );

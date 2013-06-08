@@ -1,18 +1,18 @@
 <package>
-  <description brief="people">
+  <description brief="people_detection">
 
-     people
+     people_detection
 
   </description>
-  <author>xcerx</author>
+  <author>Skuba</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/people</url>
+  <url>http://ros.org/wiki/people_detection</url>
   <depend package="roscpp"/>
-  <depend package="sensor_msgs"/>
-  <depend package="opencv2"/>
+  <depend package="rospy"/>
   <depend package="std_msgs"/>
-  <depend package="cv_bridge"/>
+  <depend package="sensor_msgs"/>
+
 </package>
 
 

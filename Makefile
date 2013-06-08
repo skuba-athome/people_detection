@@ -36,10 +36,10 @@ CMAKE_COMMAND = /usr/bin/cmake
 RM = /usr/bin/cmake -E remove -f
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/skuba-athome/skuba_athome_main/people
+CMAKE_SOURCE_DIR = /home/skuba/skuba_athome/people_detection
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/skuba-athome/skuba_athome_main/people
+CMAKE_BINARY_DIR = /home/skuba/skuba_athome/people_detection
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -66,9 +66,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/skuba-athome/skuba_athome_main/people/CMakeFiles /home/skuba-athome/skuba_athome_main/people/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/skuba/skuba_athome/people_detection/CMakeFiles /home/skuba/skuba_athome/people_detection/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/skuba-athome/skuba_athome_main/people/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/skuba/skuba_athome/people_detection/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -161,17 +161,17 @@ clean-test-results/fast:
 .PHONY : clean-test-results/fast
 
 #=============================================================================
-# Target rules for targets named people
+# Target rules for targets named ground_based_rgbd_people_detector
 
 # Build rule for target.
-people: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 people
-.PHONY : people
+ground_based_rgbd_people_detector: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 ground_based_rgbd_people_detector
+.PHONY : ground_based_rgbd_people_detector
 
 # fast build rule for target.
-people/fast:
-	$(MAKE) -f CMakeFiles/people.dir/build.make CMakeFiles/people.dir/build
-.PHONY : people/fast
+ground_based_rgbd_people_detector/fast:
+	$(MAKE) -f CMakeFiles/ground_based_rgbd_people_detector.dir/build.make CMakeFiles/ground_based_rgbd_people_detector.dir/build
+.PHONY : ground_based_rgbd_people_detector/fast
 
 #=============================================================================
 # Target rules for targets named rosbuild_precompile
@@ -304,19 +304,19 @@ tests/fast:
 .PHONY : tests/fast
 
 # target to build an object file
-src/people.o:
-	$(MAKE) -f CMakeFiles/people.dir/build.make CMakeFiles/people.dir/src/people.o
-.PHONY : src/people.o
+src/main_ground_based_people_detection.o:
+	$(MAKE) -f CMakeFiles/ground_based_rgbd_people_detector.dir/build.make CMakeFiles/ground_based_rgbd_people_detector.dir/src/main_ground_based_people_detection.o
+.PHONY : src/main_ground_based_people_detection.o
 
 # target to preprocess a source file
-src/people.i:
-	$(MAKE) -f CMakeFiles/people.dir/build.make CMakeFiles/people.dir/src/people.i
-.PHONY : src/people.i
+src/main_ground_based_people_detection.i:
+	$(MAKE) -f CMakeFiles/ground_based_rgbd_people_detector.dir/build.make CMakeFiles/ground_based_rgbd_people_detector.dir/src/main_ground_based_people_detection.i
+.PHONY : src/main_ground_based_people_detection.i
 
 # target to generate assembly for a file
-src/people.s:
-	$(MAKE) -f CMakeFiles/people.dir/build.make CMakeFiles/people.dir/src/people.s
-.PHONY : src/people.s
+src/main_ground_based_people_detection.s:
+	$(MAKE) -f CMakeFiles/ground_based_rgbd_people_detector.dir/build.make CMakeFiles/ground_based_rgbd_people_detector.dir/src/main_ground_based_people_detection.s
+.PHONY : src/main_ground_based_people_detection.s
 
 # Help Target
 help:
@@ -330,7 +330,7 @@ help:
 	@echo "... ROSBUILD_gensrv_lisp"
 	@echo "... clean-test-results"
 	@echo "... edit_cache"
-	@echo "... people"
+	@echo "... ground_based_rgbd_people_detector"
 	@echo "... rebuild_cache"
 	@echo "... rosbuild_precompile"
 	@echo "... rosbuild_premsgsrvgen"
@@ -342,9 +342,9 @@ help:
 	@echo "... test-results"
 	@echo "... test-results-run"
 	@echo "... tests"
-	@echo "... src/people.o"
-	@echo "... src/people.i"
-	@echo "... src/people.s"
+	@echo "... src/main_ground_based_people_detection.o"
+	@echo "... src/main_ground_based_people_detection.i"
+	@echo "... src/main_ground_based_people_detection.s"
 .PHONY : help
 
 

@@ -85,6 +85,10 @@ using namespace Eigen;
 ros::Publisher marker_pub,pan_tilt_pub,goal_pub;
 tf::TransformListener* listener;
 
+bool usedToBeFound = false;
+bool isTrackingLost = false;
+
+
 std::string camera_optical_frame = "/camera_rgb_optical_frame";
 std::string robot_camera_frame = "/pan_link";
 std::string robot_frame = "/base_link";
@@ -103,6 +107,8 @@ bool need_reinit = false;
 void intiCallback (const std_msgs::Bool::ConstPtr& init_sig)
 {
 	need_reinit = init_sig->data;
+	usedToBeFound = false;
+	isTrackingLost = false;
 }
 
 void extractRGBFromPointCloud (boost::shared_ptr<PointCloud> input_cloud, pcl17::PointCloud<pcl17::RGB>::Ptr& output_cloud)
@@ -252,7 +258,7 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
 
 	if(!init || need_reinit)
 	{
-		MatrixXf init_point_bot(4,1); init_point_bot << -1.0,0.0,1.0,1.0;
+		MatrixXf init_point_bot(4,1); init_point_bot << 1.0,0.0,1.0,1.0;
 		pp_center_world_last = bot2worldTF*init_point_bot;
 		//std::cout << pp_center_world_last << std::endl;
 		init = true;
@@ -302,7 +308,7 @@ int main(int argc, char **argv)
   // Algorithm parameters:
   float voxel_size = 0.06;
   float min_confidence = -1.5;
-  float min_height = 1.3;
+  float min_height = 0.8;
   float max_height = 2.3;
 //===================================================================================
   // set default values for optional parameters:
@@ -330,6 +336,12 @@ int main(int argc, char **argv)
 			PointCloud::Ptr cloud (new PointCloud);
 			pcl17::copyPointCloud<PointT, PointT>(*cloud_obj, *cloud);
 			new_cloud_available_flag = false;
+				
+/*
+			if(cloud_obj->size()==0){
+				continue;
+			}
+*/
 
       // Perform people detection on the new cloud:
       std::vector<pcl17::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
@@ -384,7 +396,15 @@ int main(int argc, char **argv)
   		subclustering.subcluster(clusters);
 
 			std::vector<Eigen::Vector3f> pp_center_list;
-			static bool isTrackingLost = false;
+			//static bool isTrackingLost = false;
+
+
+			//edit by Win
+			printf("size of cluster : %d\n",clusters.size());
+			if(clusters.size() == 0 )
+				continue;
+
+
 			for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
   		{
 				if(isTrackingLost)
@@ -414,7 +434,7 @@ int main(int argc, char **argv)
 			if(isTrackingLost) isFound = doTracking(pp_center_list,1.0,pp_pose_world);
 			else isFound = doTracking(pp_center_list,0.35,pp_pose_world);
 			
-			static bool usedToBeFound = false;
+			//static bool usedToBeFound = false;
 
 			static unsigned int lost_count = 0;
 
@@ -434,6 +454,8 @@ int main(int argc, char **argv)
 					{
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;
+						//edit by Dear
+						//usedToBeFound = false;
 					}
 				}
 			}
@@ -460,8 +482,8 @@ int main(int argc, char **argv)
 			pan_ang_filter = pan_ang_filter + 0.8f*(pan_ang - pan_ang_filter);
 	
 			static bool prepstate = false;
-			pan_tilt_pub.publish(tf::createQuaternionMsgFromRollPitchYaw(0.0, 0.0, pan_ang_filter+3.14159));
-			if(prepstate == false)
+			pan_tilt_pub.publish(tf::createQuaternionMsgFromRollPitchYaw(0.0, 0.0, pan_ang_filter));
+			/*if(prepstate == false)
 			{
 				if(pan_ang > 0.0 && pan_ang > 2.3 && pan_ang < 2.7) 
 				{
@@ -469,11 +491,6 @@ int main(int argc, char **argv)
 					system("espeak -ven+f5 -s 120 'prepare to turn left'");
 					prepstate = true;
 				}
-				/*else if(pan_ang_filter < 0.0 && pan_ang_filter > -2.4 && pan_ang_filter < -2.0)
-				{
-					ROS_WARN("prepare to turn right");
-					prepstate = true;
-				}*/
 				
 			}
 			else
@@ -490,7 +507,7 @@ int main(int argc, char **argv)
 					prepstate = false;
 				}
 				
-			}
+			}*/
 			//else if(pan_ang_filter< 0.0 && pan_ang_filter < -2.0 && pan_ang_filter>
 			ROS_WARN("pan filter : %f", pan_ang_filter);
 

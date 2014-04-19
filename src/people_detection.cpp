@@ -273,6 +273,8 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
 	{
 		MatrixXf pp_center_cam(4,1); pp_center_cam << pp_center_list[k](0),pp_center_list[k](1),pp_center_list[k](2), 1;
 		MatrixXf pp_center_world_tmp = cam2worldTF*pp_center_cam;
+        pp_center_world_tmp(0)*=-1;   
+        pp_center_world_tmp(1)*=-1;   
 		float dist = (pp_center_world_tmp - pp_center_world_last).squaredNorm();
 		if(dist < disTH && dist<min_dist)
 		{

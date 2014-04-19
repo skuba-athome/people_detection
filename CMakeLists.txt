@@ -31,10 +31,16 @@ target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtk
 rosbuild_add_boost_directories()
 rosbuild_link_boost(people_detection filesystem system)
 
-rosbuild_add_executable(multi_people_detection src/multi_people_detection.cpp)
-target_link_libraries(multi_people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
+rosbuild_add_executable(people_detection_dear src/people_detection_dear.cpp)
 rosbuild_add_boost_directories()
-rosbuild_link_boost(multi_people_detection filesystem system)
+rosbuild_link_boost(people_detection_dear filesystem system)
+
+
+
+#rosbuild_add_executable(multi_people_detection src/multi_people_detection.cpp)
+#target_link_libraries(multi_people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
+#rosbuild_add_boost_directories()
+#rosbuild_link_boost(multi_people_detection filesystem system)
 
 #rosbuild_add_executable(test_people src/test_people.cpp)
 #rosbuild_add_boost_directories()

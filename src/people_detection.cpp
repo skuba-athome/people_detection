@@ -273,8 +273,9 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
 	{
 		MatrixXf pp_center_cam(4,1); pp_center_cam << pp_center_list[k](0),pp_center_list[k](1),pp_center_list[k](2), 1;
 		MatrixXf pp_center_world_tmp = cam2worldTF*pp_center_cam;
-        pp_center_world_tmp(0)*=-1;   
-        pp_center_world_tmp(1)*=-1;   
+        //pp_center_world_tmp(0)*=-1;   
+        //pp_center_world_tmp(1)*=-1;
+        std::cout << pp_center_world_last << std::endl;   
 		float dist = (pp_center_world_tmp - pp_center_world_last).squaredNorm();
 		if(dist < disTH && dist<min_dist)
 		{
@@ -333,7 +334,7 @@ int main(int argc, char **argv)
 		if(new_cloud_available_flag)
 		{
 			VectorXf ground_coeffs = getGroundCoeffs();
-			std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
+			//std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 
 			PointCloud::Ptr cloud (new PointCloud);
 			pcl17::copyPointCloud<PointT, PointT>(*cloud_obj, *cloud);
@@ -477,7 +478,9 @@ int main(int argc, char **argv)
 			Matrix4f world2botTF = getHomogeneousMatrix(world_frame,robot_frame);
 			MatrixXf pp_pose_world_tmp(4,1); pp_pose_world_tmp << pp_pose_world(0),pp_pose_world(1),pp_pose_world(2), 1;
 			MatrixXf pp_center_bot = world2botTF*pp_pose_world_tmp;
-			std::cout << pp_center_bot << std::endl;
+            //pp_center_bot(0)*=-1; //Edit Tf  
+			//pp_center_bot(1)*=-1; //Edit Tf
+            std::cout << pp_center_bot << std::endl;
 
 			static float pan_ang_filter = 0.0f;
 			float pan_ang = atan2(pp_center_bot(1,0),pp_center_bot(0,0));

@@ -275,7 +275,7 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
 		MatrixXf pp_center_world_tmp = cam2worldTF*pp_center_cam;
         //pp_center_world_tmp(0)*=-1;   
         //pp_center_world_tmp(1)*=-1;
-        std::cout << pp_center_world_last << std::endl;   
+        //std::cout << pp_center_world_last << std::endl;   
 		float dist = (pp_center_world_tmp - pp_center_world_last).squaredNorm();
 		if(dist < disTH && dist<min_dist)
 		{
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;
 						//edit by Dear
-						//usedToBeFound = false;
+						usedToBeFound = false;
 					}
 				}
 			}
@@ -515,7 +515,7 @@ int main(int argc, char **argv)
 			}*/
 			//else if(pan_ang_filter< 0.0 && pan_ang_filter < -2.0 && pan_ang_filter>
 			ROS_WARN("pan filter : %f", pan_ang_filter);
-
+            std::cout << "IsTracking ::" << isTrackingLost << std::endl;  //dear
 			lumyai_navigation_msgs::NavGoalMsg goal_pose;
 			if(true && isTrackingLost) {
 				goal_pose.text_msg = "lost";

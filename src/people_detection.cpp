@@ -310,7 +310,7 @@ int main(int argc, char **argv)
 
   // Algorithm parameters:
   float voxel_size = 0.06;
-  float min_confidence = -1.5;
+  float min_confidence = -3; // -1.5
   float min_height = 0.8;
   float max_height = 2.3;
 //===================================================================================
@@ -457,7 +457,7 @@ int main(int argc, char **argv)
 					{
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;
-						//edit by Dear
+						//edit by dear
 						usedToBeFound = false;
 					}
 				}
@@ -533,6 +533,7 @@ int main(int argc, char **argv)
 				goal_pose.pose2d.y = pp_center_bot(1);
 				goal_pose.pose2d.theta = atan2(pp_center_bot(1),pp_center_bot(0));
 			}
+            std::cout << "Goal_pose :: " << goal_pose << std::endl ; 
 			goal_pub.publish(goal_pose);
 			
 			

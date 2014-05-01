@@ -26,6 +26,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_gensrv()
 find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
+
+rosbuild_add_executable(foot_detection src/foot_detection.cpp)
 rosbuild_add_executable(people_detection src/people_detection.cpp)
 target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
 rosbuild_add_boost_directories()

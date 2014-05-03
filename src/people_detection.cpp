@@ -310,7 +310,7 @@ int main(int argc, char **argv)
 
   // Algorithm parameters:
   float voxel_size = 0.06;
-  float min_confidence = -3; // -1.5
+  float min_confidence = -1.5; // -1.5
   float min_height = 0.8;
   float max_height = 2.3;
 //===================================================================================
@@ -453,7 +453,7 @@ int main(int argc, char **argv)
 				else
 				{
 					lost_count++;
-					if(lost_count > 3)
+					if(lost_count > 9)
 					{
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;

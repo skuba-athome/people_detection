@@ -153,7 +153,7 @@ int main (int argc, char** argv)
 
   // Algorithm parameters:
   float voxel_size = 0.06;
-  float min_confidence = -1.5;
+  float min_confidence = -3.0;
   float min_height = 1.3;
   float max_height = 2.3;
 //===================================================================================
@@ -328,6 +328,7 @@ ground_coeffs << -0.021013, -0.999772, 0.003708, 1.03842;
       unsigned int k = 0;
       for(std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
       {
+        std::cout << "PersonConfidence" <<it->getPersonConfidence() << std::endl ;
         if(it->getPersonConfidence() > min_confidence)             // draw only people with confidence above a threshold
         {
           // draw theoretical person bounding box in the PCL viewer:

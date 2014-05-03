@@ -269,13 +269,16 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
 	bool isFound = false;
 	MatrixXf pp_center_world = pp_center_world_last;
 
+    //std::cout << "pp_center_world_last " << pp_center_world_last << std::endl;   
+
+
 	for(int k = 0; k<pp_center_list.size(); k++)
 	{
 		MatrixXf pp_center_cam(4,1); pp_center_cam << pp_center_list[k](0),pp_center_list[k](1),pp_center_list[k](2), 1;
 		MatrixXf pp_center_world_tmp = cam2worldTF*pp_center_cam;
         //pp_center_world_tmp(0)*=-1;   
         //pp_center_world_tmp(1)*=-1;
-        //std::cout << pp_center_world_last << std::endl;   
+        //std::cout << "pp_center_world "<< pp_center_world_tmp << std::endl;   
 		float dist = (pp_center_world_tmp - pp_center_world_last).squaredNorm();
 		if(dist < disTH && dist<min_dist)
 		{
@@ -305,6 +308,11 @@ int main(int argc, char **argv)
 	pan_tilt_pub = n.advertise<geometry_msgs::Quaternion>("pan_tilt_cmd", 1);
 	goal_pub = n.advertise<lumyai_navigation_msgs::NavGoalMsg>("/follow/point", 1);
 	marker_pub = n.advertise<visualization_msgs::MarkerArray>("target_pose", 1);
+
+// Initialize new viewer:
+  pcl17::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
+  viewer.setCameraPosition(0,0,-2,0,-1,0,0);
+  viewer.setBackgroundColor(0,0,0);
 
   listener = new tf::TransformListener();
 
@@ -339,15 +347,19 @@ int main(int argc, char **argv)
 			PointCloud::Ptr cloud (new PointCloud);
 			pcl17::copyPointCloud<PointT, PointT>(*cloud_obj, *cloud);
 			new_cloud_available_flag = false;
-				
+			
+      viewer.removeAllPointClouds();
+pcl17::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
+  viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
+  viewer.setCameraPosition(0,0,-2,0,-1,0,0);	
 /*
 			if(cloud_obj->size()==0){
 				continue;
 			}
 */
-
+	
       // Perform people detection on the new cloud:
-      std::vector<pcl17::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
+        std::vector<pcl17::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
 
 	    // Adapt thresholds for clusters points number to the voxel size:
   	  max_points = int(float(max_points) * std::pow(0.06/voxel_size, 2));
@@ -401,15 +413,26 @@ int main(int argc, char **argv)
 			std::vector<Eigen::Vector3f> pp_center_list;
 			//static bool isTrackingLost = false;
 
+/*
+// Draw cloud and people bounding boxes in the viewer:
+      viewer.removeAllPointClouds();
+      viewer.removeAllShapes();
+      pcl17::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
+      viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
+unsigned int k = 0;*/
 
 			//edit by Win
-			printf("size of cluster : %d\n",clusters.size());
+			////printf("size of cluster : %d\n",clusters.size());
 			if(clusters.size() == 0 )
 				continue;
 
 
 			for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
   		{
+
+// draw theoretical person bounding box in the PCL viewer:
+          //it->drawTBoundingBox(viewer, k);
+          //k++;
 				if(isTrackingLost)
 				{
 					for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
@@ -435,7 +458,7 @@ int main(int argc, char **argv)
 			bool isFound;
 			Eigen::Vector3f pp_pose_world;
 			if(isTrackingLost) isFound = doTracking(pp_center_list,1.0,pp_pose_world);
-			else isFound = doTracking(pp_center_list,0.35,pp_pose_world);
+			else isFound = doTracking(pp_center_list,0.30,pp_pose_world);
 			
 			//static bool usedToBeFound = false;
 
@@ -458,7 +481,7 @@ int main(int argc, char **argv)
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;
 						//edit by dear
-						usedToBeFound = false;
+						//    usedToBeFound = false;
 					}
 				}
 			}
@@ -480,7 +503,7 @@ int main(int argc, char **argv)
 			MatrixXf pp_center_bot = world2botTF*pp_pose_world_tmp;
             //pp_center_bot(0)*=-1; //Edit Tf  
 			//pp_center_bot(1)*=-1; //Edit Tf
-            std::cout << pp_center_bot << std::endl;
+            ////std::cout << pp_center_bot << std::endl;
 
 			static float pan_ang_filter = 0.0f;
 			float pan_ang = atan2(pp_center_bot(1,0),pp_center_bot(0,0));
@@ -515,7 +538,7 @@ int main(int argc, char **argv)
 			}*/
 			//else if(pan_ang_filter< 0.0 && pan_ang_filter < -2.0 && pan_ang_filter>
 			ROS_WARN("pan filter : %f", pan_ang_filter);
-            std::cout << "IsTracking ::" << isTrackingLost << std::endl;  //dear
+            //std::cout << "IsTracking ::" << isTrackingLost << std::endl;  //dear
 			lumyai_navigation_msgs::NavGoalMsg goal_pose;
 			if(true && isTrackingLost) {
 				goal_pose.text_msg = "lost";
@@ -533,7 +556,7 @@ int main(int argc, char **argv)
 				goal_pose.pose2d.y = pp_center_bot(1);
 				goal_pose.pose2d.theta = atan2(pp_center_bot(1),pp_center_bot(0));
 			}
-            std::cout << "Goal_pose :: " << goal_pose << std::endl ; 
+            //std::cout << "Goal_pose :: " << goal_pose << std::endl ; 
 			goal_pub.publish(goal_pose);
 			
 			

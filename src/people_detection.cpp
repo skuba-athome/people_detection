@@ -309,10 +309,6 @@ int main(int argc, char **argv)
 	goal_pub = n.advertise<lumyai_navigation_msgs::NavGoalMsg>("/follow/point", 1);
 	marker_pub = n.advertise<visualization_msgs::MarkerArray>("target_pose", 1);
 
-// Initialize new viewer:
-  pcl17::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
-  viewer.setCameraPosition(0,0,-2,0,-1,0,0);
-  viewer.setBackgroundColor(0,0,0);
 
   listener = new tf::TransformListener();
 
@@ -348,10 +344,6 @@ int main(int argc, char **argv)
 			pcl17::copyPointCloud<PointT, PointT>(*cloud_obj, *cloud);
 			new_cloud_available_flag = false;
 			
-      viewer.removeAllPointClouds();
-pcl17::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
-  viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
-  viewer.setCameraPosition(0,0,-2,0,-1,0,0);	
 /*
 			if(cloud_obj->size()==0){
 				continue;
@@ -422,7 +414,7 @@ pcl17::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
 unsigned int k = 0;*/
 
 			//edit by Win
-			////printf("size of cluster : %d\n",clusters.size());
+			printf("size of cluster : %d\n",clusters.size());
 			if(clusters.size() == 0 )
 				continue;
 
@@ -476,7 +468,7 @@ unsigned int k = 0;*/
 				else
 				{
 					lost_count++;
-					if(lost_count > 9)
+					if(lost_count > 13)
 					{
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;
@@ -538,7 +530,7 @@ unsigned int k = 0;*/
 			}*/
 			//else if(pan_ang_filter< 0.0 && pan_ang_filter < -2.0 && pan_ang_filter>
 			ROS_WARN("pan filter : %f", pan_ang_filter);
-            //std::cout << "IsTracking ::" << isTrackingLost << std::endl;  //dear
+            std::cout << "IsTracking ::" << isTrackingLost << std::endl;  //dear
 			lumyai_navigation_msgs::NavGoalMsg goal_pose;
 			if(true && isTrackingLost) {
 				goal_pose.text_msg = "lost";

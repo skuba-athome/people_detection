@@ -87,7 +87,7 @@ void scanCallback(const sensor_msgs::LaserScanPtr &scan)
            //     wall_people.data = "DETECTED";
 
             state ='a';
-            if(laser_range_1[n]>=0.20&&laser_range_1[n]<2.2)
+            if(laser_range_1[n]>=0.20&&laser_range_1[n]<1.8)
             {
                // if(temp_distance==0)     // init foot
                // {

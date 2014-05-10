@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 	ros::Subscriber	init_sub = n.subscribe("/follow/init", 1, intiCallback);
 	pan_tilt_pub = n.advertise<geometry_msgs::Quaternion>("pan_tilt_main_state", 1);
 	goal_pub = n.advertise<lumyai_navigation_msgs::NavGoalMsg>("/follow/point", 1);
-	marker_pub = n.advertise<visualization_msgs::MarkerArray>("target_pose", 1);
+    marker_pub = n.advertise<visualization_msgs::MarkerArray>("target_pose", 1);
 
 
   listener = new tf::TransformListener();

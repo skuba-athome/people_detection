@@ -255,7 +255,7 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
 	Matrix4f cam2botTF = getHomogeneousMatrix(camera_optical_frame,robot_frame);
 	Matrix4f cam2worldTF = bot2worldTF*cam2botTF;
 //--------------------------------------------------------//
-
+    std::cout << "pp_center_world_last" << pp_center_world_last << std::endl;
 	if(!init || need_reinit)
 	{
 		MatrixXf init_point_bot(4,1); init_point_bot << 1.0,0.0,1.0,1.0;
@@ -279,7 +279,8 @@ bool doTracking(std::vector<Eigen::Vector3f> pp_center_list, float disTH, Eigen:
         //pp_center_world_tmp(0)*=-1;   
         //pp_center_world_tmp(1)*=-1;
         //std::cout << "pp_center_world "<< pp_center_world_tmp << std::endl;   
-		float dist = (pp_center_world_tmp - pp_center_world_last).squaredNorm();
+        float dist = (pp_center_world_tmp - pp_center_world_last).squaredNorm();
+        std::cout << "Dist "  << dist << std::endl ;
 		if(dist < disTH && dist<min_dist)
 		{
 			isFound = true;	
@@ -305,7 +306,7 @@ int main(int argc, char **argv)
   ros::Subscriber cloub_sub = n.subscribe("camera/depth_registered/points", 1, cloudCallback);
 
 	ros::Subscriber	init_sub = n.subscribe("/follow/init", 1, intiCallback);
-	pan_tilt_pub = n.advertise<geometry_msgs::Quaternion>("pan_tilt_cmd", 1);
+	pan_tilt_pub = n.advertise<geometry_msgs::Quaternion>("pan_tilt_main_state", 1);
 	goal_pub = n.advertise<lumyai_navigation_msgs::NavGoalMsg>("/follow/point", 1);
 	marker_pub = n.advertise<visualization_msgs::MarkerArray>("target_pose", 1);
 
@@ -425,7 +426,7 @@ unsigned int k = 0;*/
 // draw theoretical person bounding box in the PCL viewer:
           //it->drawTBoundingBox(viewer, k);
           //k++;
-				if(isTrackingLost)
+				if(true || isTrackingLost)
 				{
 					for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
 					{
@@ -437,7 +438,7 @@ unsigned int k = 0;*/
 						Eigen::Vector3f bottom = rgb_intrinsics_matrix * (it->getTBottom());
 						bottom /= bottom(2);
 						it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, rgb_intrinsics_matrix, false));
-
+printf("getPerConfidence %f\n",it->getPersonConfidence());
 						if(it->getPersonConfidence() > min_confidence)
 						{
 							pp_center_list.push_back(it->getTCenter());
@@ -450,7 +451,7 @@ unsigned int k = 0;*/
 			bool isFound;
 			Eigen::Vector3f pp_pose_world;
 			if(isTrackingLost) isFound = doTracking(pp_center_list,1.0,pp_pose_world);
-			else isFound = doTracking(pp_center_list,0.30,pp_pose_world);
+			else isFound = doTracking(pp_center_list,0.35,pp_pose_world);
 			
 			//static bool usedToBeFound = false;
 
@@ -468,7 +469,7 @@ unsigned int k = 0;*/
 				else
 				{
 					lost_count++;
-					if(lost_count > 13)
+					if(lost_count > 3)
 					{
 						isTrackingLost = true;
 						std::cout << ">>>>>>>>>>Lost Master<<<<<<<<<" << std::endl;

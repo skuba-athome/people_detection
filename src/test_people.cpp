@@ -48,22 +48,22 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
-#include <pcl17/ros/conversions.h>
-#include <pcl17_ros/transforms.h>
+#include <pcl/ros/conversions.h>
+#include <pcl_ros/transforms.h>
 
-#include <pcl17/point_types.h>
-#include <pcl17/visualization/pcl_visualizer.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
-typedef pcl17::PointXYZRGBA PointT;
-typedef pcl17::PointCloud<PointT> PointCloudT;
+typedef pcl::PointXYZRGBA PointT;
+typedef pcl::PointCloud<PointT> PointCloudT;
 
-pcl17::visualization::PCLVisualizer viewer("PCL Viewer");
+pcl::visualization::PCLVisualizer viewer("PCL Viewer");
 
 PointCloudT cloud_obj;
 bool cloud_available_flag = false;
 void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_in)
 {
-	pcl17::fromROSMsg(*cloud_in,cloud_obj);
+	pcl::fromROSMsg(*cloud_in,cloud_obj);
 	cloud_available_flag = true;
 	//ROS_INFO("cloud size %d",cloud_obj.points.size());
 	//ROS_INFO("r:%d g:%d b:%d x:%.2f",cloud_obj.points[0].r,cloud_obj.points[0].g,cloud_obj.points[0].b,cloud_obj.points[3000].x);	 		
@@ -75,9 +75,9 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& img_in)
 	if(!cloud_available_flag)return;
 	
 	PointCloudT::Ptr cloud (new PointCloudT);
-  pcl17::copyPointCloud<PointT, PointT>(cloud_obj, *cloud);
+  pcl::copyPointCloud<PointT, PointT>(cloud_obj, *cloud);
 
-	pcl17::RGB rgb_point;
+	pcl::RGB rgb_point;
 	int j = 0;
 	for (int i = 0; i < img_in->data.size(); i+=3)
 	{
@@ -92,7 +92,7 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& img_in)
 	}
 
 	viewer.removeAllPointClouds();
-  pcl17::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
+  pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
   viewer.addPointCloud<PointT> (cloud, rgb, "test_cloud");
 	viewer.setCameraPosition(0,0,-2,0,-1,0,0);
 	viewer.spinOnce();
@@ -104,14 +104,14 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& img_in)
 	//ROS_INFO("j = %d",j);
 }
 
-/*pcl17::PointCloud<pcl17::RGB>::Ptr rgb_image(new pcl17::PointCloud<pcl17::RGB>);
+/*pcl::PointCloud<pcl::RGB>::Ptr rgb_image(new pcl::PointCloud<pcl::RGB>);
 void imageCallback(const sensor_msgs::Image::ConstPtr& img_in)
 {
 	rgb_image->points.resize(img_in->height*img_in->width);
 	rgb_image->width = img_in->width;
 	rgb_image->height = img_in->height;
 
-	pcl17::RGB rgb_point;
+	pcl::RGB rgb_point;
 	int j = 0;
 	for (int i = 0; i < img_in->data.size(); i+=3)
 	{

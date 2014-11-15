@@ -49,36 +49,36 @@
 #include <string>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
-#include "lumyai_navigation_msgs/NavGoalMsg.h"
+#include "athome_msgs/msg/navigation_goal.msg"
 #include <geometry_msgs/PointStamped.h>
 #include <shape_msgs/Plane.h>
-#include <pcl17/ros/conversions.h>
-#include <pcl17_ros/transforms.h>
+#include <pcl/ros/conversions.h>
+#include <pcl_ros/transforms.h>
 
-#include <pcl17/console/parse.h>
-#include <pcl17/point_types.h>
-#include <pcl17/visualization/pcl_visualizer.h>    
-#include <pcl17/sample_consensus/sac_model_plane.h>
-#include <pcl17/people/ground_based_people_detection_app.h>
+#include <pcl/console/parse.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/pcl_visualizer.h>    
+#include <pcl/sample_consensus/sac_model_plane.h>
+#include <pcl/people/ground_based_people_detection_app.h>
 
-#include <pcl17/point_types.h>
-#include <pcl17/sample_consensus/sac_model_plane.h>
-#include <pcl17/sample_consensus/ransac.h>
-#include <pcl17/filters/extract_indices.h>
-#include <pcl17/segmentation/extract_clusters.h>
-#include <pcl17/kdtree/kdtree.h>
-#include <pcl17/filters/voxel_grid.h>
-#include <pcl17/people/person_cluster.h>
-#include <pcl17/people/head_based_subcluster.h>
-#include <pcl17/people/person_classifier.h>
+#include <pcl/point_types.h>
+#include <pcl/sample_consensus/sac_model_plane.h>
+#include <pcl/sample_consensus/ransac.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/people/person_cluster.h>
+#include <pcl/people/head_based_subcluster.h>
+#include <pcl/people/person_classifier.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <stdlib.h>
 
 template <typename T> std::string tostr(const T& t) { std::ostringstream os; os<<t; return os.str(); }
 
-typedef pcl17::PointXYZRGB PointT;
-typedef pcl17::PointCloud<PointT> PointCloud;
+typedef pcl::PointXYZRGB PointT;
+typedef pcl::PointCloud<PointT> PointCloud;
 
 using namespace Eigen;
 
@@ -98,7 +98,7 @@ PointCloud::Ptr cloud_obj (new PointCloud);
 bool new_cloud_available_flag = false;
 void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_in)
 {
-	pcl17::fromROSMsg(*cloud_in,*cloud_obj);
+	pcl::fromROSMsg(*cloud_in,*cloud_obj);
 	new_cloud_available_flag = true;
 	ROS_INFO("%d",cloud_obj->size());  		
 }
@@ -111,14 +111,14 @@ void intiCallback (const std_msgs::Bool::ConstPtr& init_sig)
 	isTrackingLost = false;
 }
 
-void extractRGBFromPointCloud (boost::shared_ptr<PointCloud> input_cloud, pcl17::PointCloud<pcl17::RGB>::Ptr& output_cloud)
+void extractRGBFromPointCloud (boost::shared_ptr<PointCloud> input_cloud, pcl::PointCloud<pcl::RGB>::Ptr& output_cloud)
 {
   // Extract RGB information from a point cloud and output the corresponding RGB point cloud  
   output_cloud->points.resize(input_cloud->height*input_cloud->width);
   output_cloud->width = input_cloud->width;
   output_cloud->height = input_cloud->height;
 
-  pcl17::RGB rgb_point;
+  pcl::RGB rgb_point;
   for (int j = 0; j < input_cloud->width; j++)
   {
     for (int i = 0; i < input_cloud->height; i++)
@@ -204,7 +204,7 @@ Eigen::VectorXf getGroundCoeffs()
 	}	
 		
 	Eigen::Matrix4f T;
-	pcl17_ros::transformAsMatrix(transform,T);
+	pcl_ros::transformAsMatrix(transform,T);
 
 	Eigen::MatrixXf coeffs(1,4); coeffs << 0, 0, 1, 0;
 	Eigen::MatrixXf coeffs_out(1,4);
@@ -226,7 +226,7 @@ Eigen::Matrix4f getHomogeneousMatrix(std::string input_frame,std::string des_fra
 	}	
 		
 	Eigen::Matrix4f T;
-	pcl17_ros::transformAsMatrix(transform,T);
+	pcl_ros::transformAsMatrix(transform,T);
 
 	return T;
 }
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
   rgb_intrinsics_matrix << 131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0;//525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
 
   // Initialize classifier for people detection:  
-  pcl17::people::PersonClassifier<pcl17::RGB> person_classifier;
+  pcl::people::PersonClassifier<pcl::RGB> person_classifier;
   person_classifier.loadSVMFromFile(svm_filename);   // load trained SVM
 
 	ros::Rate loop_rate(10);
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 			//std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 
 			PointCloud::Ptr cloud (new PointCloud);
-			pcl17::copyPointCloud<PointT, PointT>(*cloud_obj, *cloud);
+			pcl::copyPointCloud<PointT, PointT>(*cloud_obj, *cloud);
 			new_cloud_available_flag = false;
 				
 /*
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 */
 
       // Perform people detection on the new cloud:
-      std::vector<pcl17::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
+      std::vector<pcl::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
 
 	    // Adapt thresholds for clusters points number to the voxel size:
   	  max_points = int(float(max_points) * std::pow(0.06/voxel_size, 2));
@@ -355,32 +355,32 @@ int main(int argc, char **argv)
   	  min_points = int(float(min_points) * std::pow(0.06/voxel_size, 2));
 
   		// Fill rgb image:
-  		pcl17::PointCloud<pcl17::RGB>::Ptr rgb_image(new pcl17::PointCloud<pcl17::RGB>);
+  		pcl::PointCloud<pcl::RGB>::Ptr rgb_image(new pcl::PointCloud<pcl::RGB>);
   		extractRGBFromPointCloud(cloud, rgb_image);          // fill RGB pointcloud
 
   		// Voxel grid filtering:
   		PointCloud::Ptr cloud_filtered(new PointCloud);
-  		pcl17::VoxelGrid<PointT> voxel_grid_filter_object;
+  		pcl::VoxelGrid<PointT> voxel_grid_filter_object;
   		voxel_grid_filter_object.setInputCloud(cloud);
   		voxel_grid_filter_object.setLeafSize (voxel_size, voxel_size, voxel_size);
   		voxel_grid_filter_object.filter (*cloud_filtered);
 
   		// Ground removal and update:
-  		pcl17::IndicesPtr inliers(new std::vector<int>);
-  		pcl17::SampleConsensusModelPlane<PointT>::Ptr ground_model(new pcl17::SampleConsensusModelPlane<PointT>(cloud_filtered));
+  		pcl::IndicesPtr inliers(new std::vector<int>);
+  		pcl::SampleConsensusModelPlane<PointT>::Ptr ground_model(new pcl::SampleConsensusModelPlane<PointT>(cloud_filtered));
   		ground_model->selectWithinDistance(ground_coeffs, voxel_size*3.5, *inliers);
   		PointCloud::Ptr no_ground_cloud(new PointCloud);
-  		pcl17::ExtractIndices<PointT> extract;
+  		pcl::ExtractIndices<PointT> extract;
   		extract.setInputCloud(cloud_filtered);
   		extract.setIndices(inliers);
   		extract.setNegative(true);
   		extract.filter(*no_ground_cloud);
 
   		// Euclidean Clustering:
-  		std::vector<pcl17::PointIndices> cluster_indices;
-  		typename pcl17::search::KdTree<PointT>::Ptr tree (new pcl17::search::KdTree<PointT>);
+  		std::vector<pcl::PointIndices> cluster_indices;
+  		typename pcl::search::KdTree<PointT>::Ptr tree (new pcl::search::KdTree<PointT>);
   		tree->setInputCloud(no_ground_cloud);
-  		pcl17::EuclideanClusterExtraction<PointT> ec;
+  		pcl::EuclideanClusterExtraction<PointT> ec;
   		ec.setClusterTolerance(2 * 0.06);
   		ec.setMinClusterSize(min_points);
 		  ec.setMaxClusterSize(max_points);
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
   		ec.extract(cluster_indices);
 
   		// Head based sub-clustering //
-  		pcl17::people::HeadBasedSubclustering<PointT> subclustering;
+  		pcl::people::HeadBasedSubclustering<PointT> subclustering;
   		subclustering.setInputCloud(no_ground_cloud);
   		subclustering.setGround(ground_coeffs);
   		subclustering.setInitialClusters(cluster_indices);
@@ -408,11 +408,11 @@ int main(int argc, char **argv)
 				continue;
 
 
-			for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
+			for(typename std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
   		{
 				if(isTrackingLost)
 				{
-					for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
+					for(typename std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
 					{
 						//Evaluate confidence for the current PersonCluster:
 						Eigen::Vector3f centroid = rgb_intrinsics_matrix * (it->getTCenter());
@@ -537,7 +537,7 @@ int main(int argc, char **argv)
 			
 			
 			//unsigned int k = 0;
-  		/*for(typename std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
+  		/*for(typename std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
   		{
     		//Evaluate confidence for the current PersonCluster:
     		Eigen::Vector3f centroid = rgb_intrinsics_matrix * (it->getTCenter());
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
 
 			/*int k = 0;
 			PointCloud::Ptr cloud_cluster(new PointCloud);
-      for(std::vector<pcl17::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
+      for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
       {
 
 
@@ -593,7 +593,7 @@ int main(int argc, char **argv)
 			cloud_cluster->header = no_ground_cloud->header;
 
 			sensor_msgs::PointCloud2 cloud_out;
-			pcl17::toROSMsg(*cloud_cluster,cloud_out);
+			pcl::toROSMsg(*cloud_cluster,cloud_out);
  			cloud_out.header.stamp = ros::Time::now();
 			cloud_pub.publish(cloud_out);*/
 
@@ -670,7 +670,7 @@ void groundcoeffsCallback(const shape_msgs::Plane::ConstPtr& coeffs_in)
 	}	
 		
 	Eigen::Matrix4f T;
-	pcl17_ros::transformAsMatrix(transform,T);
+	pcl_ros::transformAsMatrix(transform,T);
 
 	Eigen::MatrixXf coeffs(1,4); coeffs << coeffs_in->coef[0], coeffs_in->coef[1], coeffs_in->coef[2], coeffs_in->coef[3];
 	Eigen::MatrixXf coeffs_out(1,4);

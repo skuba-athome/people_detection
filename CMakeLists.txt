@@ -51,8 +51,13 @@ find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
 add_executable(people_detection src/people_detection.cpp)
 add_executable(foot_detection src/foot_detection.cpp)
+
+add_dependencies(foot_detection ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
-target_link_libraries(people_detection ${PCL_LIBRARIES})
+target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
+target_link_libraries(foot_detection ${catkin_LIBRARIES})
+
 
 #add_executable(people_detection_original src/people_detection_modify.cpp)
 #target_link_libraries(people_detection_original libvtkCommon.so libvtkFiltering.so libvtkRendering.so)

@@ -1,18 +1,11 @@
 #include <ros/ros.h>
-
 #include <string>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
-//#include "athome_msgs/msg/navigation_goal.msg"
-#include <athome_msgs/navigation_goal.h>
+#include "athome_msgs/msg/navigation_goal.msg"
 #include <geometry_msgs/PointStamped.h>
-#include <geometry_msgs/Quaternion.h>
 #include <shape_msgs/Plane.h>
-#include <visualization_msgs/MarkerArray.h>
-
-//#include <pcl/ros/conversions.h>
-#include <pcl_conversions/pcl_conversions.h>
-
+#include <pcl/ros/conversions.h>
 #include <pcl_ros/transforms.h>
 
 #include <pcl/console/parse.h>
@@ -31,7 +24,7 @@
 #include <pcl/people/person_cluster.h>
 #include <pcl/people/head_based_subcluster.h>
 #include <pcl/people/person_classifier.h>
-
+#include <visualization_msgs/MarkerArray.h>
 
 #include <stdlib.h>
 
@@ -56,30 +49,12 @@ std::string world_frame = "/odom";
 
 PointCloud::Ptr cloud_obj (new PointCloud);
 bool new_cloud_available_flag = false;
-
-/*void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_in)
+void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_in)
 {
-	//pcl::fromROSMsg(*cloud_in,*cloud_obj);
-	
-	//pcl_conversions::toPCL(*cloud_in,*cloud_obj);
-	PointCloud point_cloud_buff;
-	pcl::PCLPointCloud2 pcl_pc;
-	pcl_conversions::toPCL(cloud_in,pcl_pc);
-	
-	//cloud_obj = cloud_obj(point_cloud_buff);
+	pcl::fromROSMsg(*cloud_in,*cloud_obj);
 	new_cloud_available_flag = true;
 	ROS_INFO("%d",cloud_obj->size());  		
-}*/
-
-void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_in)
-{
-	
-	pcl::fromROSMsg (*cloud_in, *cloud_obj);
-
-	new_cloud_available_flag = true;
-	ROS_INFO("%ld",cloud_obj->size());  		
 }
-
 
 bool need_reinit = false; 
 void intiCallback (const std_msgs::Bool::ConstPtr& init_sig)
@@ -285,8 +260,7 @@ int main(int argc, char **argv)
 
 	ros::Subscriber	init_sub = n.subscribe("/follow/init", 1, intiCallback);
 	pan_tilt_pub = n.advertise<geometry_msgs::Quaternion>("pan_tilt_main_state", 1);
-	//goal_pub = n.advertise<lumyai_navigation_msgs::NavGoalMsg>("/follow/point", 1);
-    goal_pub = n.advertise<athome_msgs::navigation_goal>("/follow/point", 1);
+	goal_pub = n.advertise<lumyai_navigation_msgs::NavGoalMsg>("/follow/point", 1);
     marker_pub = n.advertise<visualization_msgs::MarkerArray>("target_pose", 1);
 
 
@@ -394,7 +368,7 @@ int main(int argc, char **argv)
 unsigned int k = 0;*/
 
 			//edit by Win
-			printf("size of cluster : %ld\n",clusters.size());
+			printf("size of cluster : %d\n",clusters.size());
 			if(clusters.size() == 0 )
 				continue;
 
@@ -416,10 +390,8 @@ unsigned int k = 0;*/
 						top /= top(2);
 						Eigen::Vector3f bottom = rgb_intrinsics_matrix * (it->getTBottom());
 						bottom /= bottom(2);
-						
-						//it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, rgb_intrinsics_matrix, false));
-						it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, false));
-						printf("getPerConfidence %f\n",it->getPersonConfidence());
+						it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, rgb_intrinsics_matrix, false));
+printf("getPerConfidence %f\n",it->getPersonConfidence());
 						if(it->getPersonConfidence() > min_confidence)
 						{
 							pp_center_list.push_back(it->getTCenter());
@@ -431,7 +403,6 @@ unsigned int k = 0;*/
 		
 			bool isFound;
 			Eigen::Vector3f pp_pose_world;
-			
 			if(isTrackingLost) isFound = doTracking(pp_center_list,1.0,pp_pose_world);
 			else isFound = doTracking(pp_center_list,0.35,pp_pose_world);
 			
@@ -514,11 +485,7 @@ unsigned int k = 0;*/
 			//else if(pan_ang_filter< 0.0 && pan_ang_filter < -2.0 && pan_ang_filter>
 			ROS_WARN("pan filter : %f", pan_ang_filter);
             std::cout << "IsTracking ::" << isTrackingLost << std::endl;  //dear
-			
-			//lumyai_navigation_msgs::NavGoalMsg goal_pose;
-            
-            athome_msgs::navigation_goal goal_pose;
-
+			lumyai_navigation_msgs::NavGoalMsg goal_pose;
 			if(true && isTrackingLost) {
 				goal_pose.text_msg = "lost";
 				goal_pose.ref_frame = "absolute";

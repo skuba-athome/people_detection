@@ -18,7 +18,9 @@
   <build_depend>tf</build_depend>
   <build_depend>visualization_msgs</build_depend>
   <build_depend>athome_msgs</build_depend>
-
+  <build_depend>message_generation</build_depend>
+  <build_depend>roslib</build_depend>
+  
   <run_depend>geometry_msgs</run_depend>
   <!-- <run_depend>pcl</run_depend> -->
   <run_depend>pcl_ros</run_depend>
@@ -30,6 +32,8 @@
   <run_depend>tf</run_depend>
   <run_depend>visualization_msgs</run_depend>
   <run_depend>athome_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>roslib</run_depend>
   <export>
   </export>
 </package>

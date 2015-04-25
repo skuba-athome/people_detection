@@ -13,16 +13,31 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   visualization_msgs
+  message_generation
   athome_msgs
+  roslib
 )
 
+
+
+add_message_files(
+    FILES
+    PersonObject.msg
+    PersonObjectArray.msg
+ )
+
+add_service_files(
+    FILES
+    ClearPeopleTracker.srv
+)
 generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
   athome_msgs
   sensor_msgs
-)
+  )
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -49,14 +64,23 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
-add_executable(people_detection src/people_detection.cpp)
-add_executable(foot_detection src/foot_detection.cpp)
+#add_executable(people_detection src/people_detection.cpp)
+#add_executable(foot_detection src/foot_detection.cpp)
+add_executable(people_detection_node src/people_detection_node.cpp)
+add_executable(people_visualize sandbox/people_detect_visualization.cpp)
+add_executable(dotracktester sandbox/tracktester.cpp)
 
-add_dependencies(foot_detection ${catkin_EXPORTED_TARGETS})
+#add_dependencies(foot_detection ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
-target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
-target_link_libraries(foot_detection ${catkin_LIBRARIES})
+#target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
+target_link_libraries(people_detection_node libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
+target_link_libraries(people_visualize libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
+
+#target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
+target_link_libraries(people_detection_node ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(people_visualize ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(dotracktester ${pcl_ros_LIBRARIES})
+#target_link_libraries(foot_detection ${catkin_LIBRARIES})
 
 
 #add_executable(people_detection_original src/people_detection_modify.cpp)

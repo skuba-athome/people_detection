@@ -1,5 +1,5 @@
 #include <ros/ros.h>
-
+#include <ros/package.h>
 #include <string>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
@@ -304,9 +304,10 @@ int main(int argc, char **argv)
   float heads_minimum_distance = 0.3;
 //===================================================================================
 
-	std::string svm_filename = "/home/skuba/skuba_athome/people_detection/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
+	//std::string svm_filename = "/home/skuba/skuba_athome/people_detection/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
+	std::string svm_filename = ros::package::getPath("people_detection") + "/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
 	Eigen::Matrix3f rgb_intrinsics_matrix;
-  rgb_intrinsics_matrix << 131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0;//525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
+  rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; //131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
 
   // Initialize classifier for people detection:  
   pcl::people::PersonClassifier<pcl::RGB> person_classifier;
@@ -367,8 +368,8 @@ int main(int argc, char **argv)
   		pcl::EuclideanClusterExtraction<PointT> ec;
   		ec.setClusterTolerance(2 * 0.06);
   		ec.setMinClusterSize(min_points);
-		  ec.setMaxClusterSize(max_points);
-		  ec.setSearchMethod(tree);
+		ec.setMaxClusterSize(max_points);
+		ec.setSearchMethod(tree);
   		ec.setInputCloud(no_ground_cloud);
   		ec.extract(cluster_indices);
 

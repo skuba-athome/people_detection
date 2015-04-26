@@ -65,12 +65,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
 #add_executable(people_detection src/people_detection.cpp)
-#add_executable(foot_detection src/foot_detection.cpp)
 add_executable(people_detection_node src/people_detection_node.cpp)
-add_executable(people_visualize sandbox/people_detect_visualization.cpp)
-add_executable(dotracktester sandbox/tracktester.cpp)
+add_executable(people_visualize src/people_detection_visualization.cpp)
 
-#add_dependencies(foot_detection ${catkin_EXPORTED_TARGETS})
 
 #target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_detection_node libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
@@ -79,8 +76,7 @@ target_link_libraries(people_visualize libvtkCommon.so libvtkFiltering.so libvtk
 #target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
 target_link_libraries(people_detection_node ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 target_link_libraries(people_visualize ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-target_link_libraries(dotracktester ${pcl_ros_LIBRARIES})
-#target_link_libraries(foot_detection ${catkin_LIBRARIES})
+
 
 
 #add_executable(people_detection_original src/people_detection_modify.cpp)

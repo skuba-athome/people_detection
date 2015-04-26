@@ -485,8 +485,8 @@ int main(int argc, char **argv)
   people_detector.setVoxelSize(voxel_size);                        // set the voxel size
   people_detector.setIntrinsics(rgb_intrinsics_matrix);            // set RGB camera intrinsic parameters
   people_detector.setClassifier(person_classifier);                // set person classifier
-  //people_detector.setHeightLimits(min_height, max_height);         // set person classifier
-  people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0);
+  people_detector.setHeightLimits(min_height, max_height);         // // for pcl 1.7.1
+  //people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0);// for pcl 1.7.2
   
   people_detector.setMinimumDistanceBetweenHeads(heads_minimum_distance); 
   std::vector<Eigen::Vector3f> pp_center_list;  

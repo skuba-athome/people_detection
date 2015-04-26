@@ -542,6 +542,12 @@ int main(int argc, char **argv)
    listener = new tf::TransformListener();
  
  //LOGITECH+KINECTDEPTH //ros::Subscriber cloub_sub = n.subscribe("/depth_registered/depth_registered/points", 1, cloudCallback); 
+ 
+ /*Save detect point to file*/
+ /* ofstream myfile;
+  std::string writefilename = ros::package::getPath("people_detection") + "/sandbox/data1people2.txt";
+  myfile.open(writefilename.c_str()); */
+
   n.param<std::string>( "rgbcamera", rgbcam, DEFAULT_RGBCAM);
   ROS_INFO( "rgbcamera: %s", rgbcam.c_str() );
 
@@ -601,8 +607,8 @@ int main(int argc, char **argv)
   people_detector.setVoxelSize(voxel_size);                        // set the voxel size
   people_detector.setIntrinsics(rgb_intrinsics_matrix);            // set RGB camera intrinsic parameters
   people_detector.setClassifier(person_classifier);                // set person classifier
-  people_detector.setHeightLimits(min_height, max_height);         // for pcl 1.7.1
-  //people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0); //for pcl 1.7.2
+  //people_detector.setHeightLimits(min_height, max_height);         // for pcl 1.7.1
+  people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0); //for pcl 1.7.2
   
   people_detector.setMinimumDistanceBetweenHeads(heads_minimum_distance); 
   cout << "eiei1" << endl; 
@@ -632,7 +638,12 @@ int main(int argc, char **argv)
 		    people_detector.compute(clusters);                           // perform people detection
 
 		    //ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
-  
+       /* pcl::PointCloud<pcl::RGB>::Ptr rgb_image;
+        std::vector< pcl::people::PersonCluster<PointT> > clusters;
+        classifyperson(cloud,clusters,ground_coeffs,rgb_image);*/
+
+        //ground_coeffs = people_detector.getGround();
+		    // Draw cloud and people bounding boxes in the viewer:
 		    #ifdef COLOR_VISUALIZE
         viewer.removeAllPointClouds();
 		    viewer.removeAllShapes();
@@ -642,7 +653,15 @@ int main(int argc, char **argv)
         unsigned int k = 0;
 		    for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
 		    {
-
+          /*Eigen::Vector3f centroid = rgb_intrinsics_matrix * (it->getTCenter());
+          centroid /= centroid(2);
+          Eigen::Vector3f top = rgb_intrinsics_matrix * (it->getTTop());
+          top /= top(2);
+          Eigen::Vector3f bottom = rgb_intrinsics_matrix * (it->getTBottom());
+          bottom /= bottom(2);
+            
+          //it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, rgb_intrinsics_matrix, false));
+          it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, false));*/
 
           if(it->getPersonConfidence() > min_confidence) // draw only people with confidence above a threshold
 		      {
@@ -655,13 +674,13 @@ int main(int argc, char **argv)
               if(temp(2) < detect_length)
               {
                 pp_center_list.push_back(temp);
-             
+                //pp_center_list.push_back(temp);
               }
               std::cout << "Person " << k << " Position : X = " << temp(0) << " ,Y = " << temp(1) << " ,Z = " << temp(2) << std::endl;
-      
+              //myfile << temp(0) << "," << temp(1) << "," << temp(2)<< "|";
           }
         }
-     
+        //myfile << std::endl;
 		    doMultiple_Tracking(pp_center_list,world_track_list,0.3);
         checktracklist(world_track_list);
         pp_center_list.clear();
@@ -700,6 +719,6 @@ int main(int argc, char **argv)
   
 	ros::spinOnce();
 	}
-
+  //myfile.close();
   return 0;
 }

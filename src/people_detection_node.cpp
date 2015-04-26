@@ -47,9 +47,17 @@
 #include <sstream>
 #include <stdlib.h>
 
-#define FRAME_OUT_CONDITION 12
-#define FRAME_IN_CONDITION 3
-#define FRAME_ENTRY_TRACKLIST 5
+#define DEFAULT_FRAME_OUT_CONDITION 12
+#define DEFAULT_FRAME_IN_CONDITION 3
+#define DEFAULT_FRAME_ENTRY_LIFETIME 5
+
+#define DEFAULT_RGBCAM "kinect"
+
+#define DEFAULT_CAM_LINK "/camera_rgb_optical_frame"
+
+#define DEFAULT_CLOUD_TOPIC "/camera/depth_registered/points"
+
+#define DEFAULT_DETECT_LENGTH 3.5
 
 #define COLOR_VISUALIZE //Comment this and Remake to turn-off visualizer
 
@@ -62,12 +70,18 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 using namespace Eigen;
 
 //===================================================================================
-   // Algorithm parameters:
+  int frame_out_condition = DEFAULT_FRAME_OUT_CONDITION;
+  int frame_in_condition = DEFAULT_FRAME_IN_CONDITION;
+  int frame_entry_lifetime = DEFAULT_FRAME_ENTRY_LIFETIME ;
+  std::string rgbcam = DEFAULT_RGBCAM;
+  //std::string rgb_link = DEFAULT_CAM_LINK;
+  std::string cloudtopic = DEFAULT_CLOUD_TOPIC;
+  // Algorithm parameters:
   float voxel_size = 0.06;
   float min_confidence = -1.5; // -1.5
   float min_height = 0.8;
   float max_height = 2.3;
-  float detect_length = 3.5;
+  double detect_length = DEFAULT_DETECT_LENGTH;
   // set default values for optional parameters:
   int min_points = 30;     // this value is adapted to the voxel size in method "compute"
   int max_points = 5000;   // this value is adapted to the voxel size in method "compute"
@@ -84,13 +98,12 @@ ros::Publisher people_array_pub;
 ros::ServiceServer service;
 
 tf::TransformListener* listener;
-bool usedToBeFound = false;
-bool isTrackingLost = false;
 
-std::string camera_optical_frame = "/camera_rgb_optical_frame";
-std::string robot_camera_frame = "/pan_link";
+
+std::string camera_optical_frame = DEFAULT_CAM_LINK;
+std::string robot_camera_frame = "/camera_link";
 std::string robot_frame = "/base_link";
-std::string world_frame = "/odom";
+//std::string world_frame = "/odom";
 
 PointCloudT::Ptr cloud_obj (new PointCloudT);
 bool new_cloud_available_flag = false;
@@ -169,6 +182,7 @@ Eigen::VectorXf getGroundCoeffs()
   } 
     
   Eigen::Matrix4f T;
+  
   pcl_ros::transformAsMatrix(transform,T);
 
   Eigen::MatrixXf coeffs(1,4); coeffs << 0, 0, 1, 0;
@@ -257,17 +271,31 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
   people_detection::PersonObjectArray pubmsg;
   pubmsg.header.stamp = ros::Time::now();
   pubmsg.header.frame_id = robot_frame;
+
+  //Transform Publish point
+  Eigen::Matrix4f tfmat = getHomogeneousMatrix(robot_frame,camera_optical_frame);
+
   for(int i=0 ;i < tracklist.size();i++)
   {
     if(tracklist[i].istrack == true)
     {
-          people_detection::PersonObject pers;
-    pers.personpoints.x = tracklist[i].points(0);
-    pers.personpoints.y = tracklist[i].points(1);
-    pers.personpoints.z = tracklist[i].points(2);
-    pers.id = tracklist[i].id;
-    pers.lifetime = tracklist[i].framesage;
-    pubmsg.persons.push_back(pers);
+        people_detection::PersonObject pers;
+        
+        Eigen::Vector4f pubpts;
+        pubpts << tracklist[i].points(0),tracklist[i].points(1),tracklist[i].points(2),1.0;
+        pubpts = tfmat*pubpts;
+      /* 
+          pers.personpoints.x = tracklist[i].points(0);
+          pers.personpoints.y = tracklist[i].points(1);
+          pers.personpoints.z = tracklist[i].points(2);
+      */
+        pers.personpoints.x = pubpts(0);
+        pers.personpoints.y = pubpts(1);
+        pers.personpoints.z = pubpts(2);
+
+        pers.id = tracklist[i].id;
+        pers.lifetime = tracklist[i].framesage;
+        pubmsg.persons.push_back(pers);
     }
   }
   people_array_pub.publish(pubmsg);
@@ -280,8 +308,8 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
 
 bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::vector<person> &world, float disTH)
 {
-  //TODO--Convert ALL INPUT and OUTPUT to WORLD_FRAME 
-
+  
+  
 
   std::vector<person> world_temp(world);
 
@@ -334,7 +362,7 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
             {
               world[k].points = pp_newcenter_list[index[1]];
               world[k].id = world_temp[index[0]].id;
-              world[k].framelostlifetime = FRAME_OUT_CONDITION;
+              world[k].framelostlifetime = frame_out_condition;
               cout << "Updated Track id --> " <<  world[k].id << endl;
             }
           }
@@ -351,8 +379,8 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
           temp.points = pp_newcenter_list[index[1]] ;
           temp.id = lastavailable_id++;
           temp.framesage = 0;
-          temp.framelostlifetime = FRAME_OUT_CONDITION;
-          temp.frameincond = FRAME_IN_CONDITION;
+          temp.framelostlifetime = frame_out_condition;
+          temp.frameincond = frame_in_condition;
           temp.istrack = false;
           #ifdef COLOR_VISUALIZE
           temp.color = generateTrackerColor();
@@ -398,8 +426,8 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
         temp.points = pp_newcenter_list[i] ;
         temp.id = lastavailable_id++;
         temp.framesage = 0;
-        temp.framelostlifetime = FRAME_OUT_CONDITION;
-        temp.frameincond = FRAME_IN_CONDITION;
+        temp.framelostlifetime = frame_out_condition;
+        temp.frameincond = frame_in_condition;
         temp.istrack = false;
         #ifdef COLOR_VISUALIZE
         temp.color = generateTrackerColor();
@@ -423,7 +451,7 @@ void checktracklist(std::vector<person> &tracklist)
     if(tracklist[i].istrack == false)
     {
       //Lost Track of new entry frame
-      if( (tracklist[i].framesage >= FRAME_ENTRY_TRACKLIST))
+      if( (tracklist[i].framesage >= frame_entry_lifetime))
       {
         if(tracklist[i].frameincond <= 0)
         {
@@ -508,9 +536,11 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "people_detection");
   ros::NodeHandle n;
-  ros::Subscriber cloub_sub = n.subscribe("camera/depth_registered/points", 1, cloudCallback);
+  ros::Subscriber cloub_sub = n.subscribe(cloudtopic, 1, cloudCallback);
   people_array_pub = n.advertise<people_detection::PersonObjectArray>("peoplearray", 10);
-  service = n.advertiseService("/clearpeopletracker", &cleartrackCallback);
+  service = n.advertiseService("/clearpeopletracker", cleartrackCallback);
+   listener = new tf::TransformListener();
+ 
  //LOGITECH+KINECTDEPTH //ros::Subscriber cloub_sub = n.subscribe("/depth_registered/depth_registered/points", 1, cloudCallback); 
  
  /*Save detect point to file*/
@@ -518,12 +548,42 @@ int main(int argc, char **argv)
   std::string writefilename = ros::package::getPath("people_detection") + "/sandbox/data1people2.txt";
   myfile.open(writefilename.c_str()); */
 
+  n.param<std::string>( "rgbcamera", rgbcam, DEFAULT_RGBCAM);
+  ROS_INFO( "rgbcamera: %s", rgbcam.c_str() );
 
-	std::string svm_filename = ros::package::getPath("people_detection") + "/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
+  n.param<std::string>( "optical_frame", camera_optical_frame, DEFAULT_CAM_LINK);
+  ROS_INFO( "optical_frame: %s", camera_optical_frame.c_str() );
+
+  n.param( "frameoutcondition", frame_out_condition , DEFAULT_FRAME_OUT_CONDITION );
+  ROS_INFO( "frameoutcondition: %d", frame_out_condition );
+
+	n.param( "frameincondition", frame_in_condition ,  DEFAULT_FRAME_IN_CONDITION );
+  ROS_INFO( "frameincondition : %d", frame_in_condition );
+  
+  n.param( "frameentrylifetime", frame_entry_lifetime, DEFAULT_FRAME_ENTRY_LIFETIME );
+  ROS_INFO( "frameentrylifetime: %d", frame_entry_lifetime );
+
+  n.param( "detect_length", detect_length, DEFAULT_DETECT_LENGTH );
+  ROS_INFO( "detect_length: %f", detect_length );
+
+  std::string svm_filename = ros::package::getPath("people_detection") + "/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
   std::cout << "svm_filename : " << svm_filename << std::endl; 
 	Eigen::Matrix3f rgb_intrinsics_matrix;
-  rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0;// 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics//131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0;
 
+  if(rgbcam == "kinect")
+  {
+    rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
+    
+  }
+    // 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0; //131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0;
+  else if(rgbcam == "logitech")
+  {
+    rgb_intrinsics_matrix << 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0;// Logitech C920 camera intrinsics
+  }
+  else
+  {
+    rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
+  }
   // Adapt thresholds for clusters points number to the voxel size:
   max_points = int(float(max_points) * std::pow(0.06/voxel_size, 2));
   if (voxel_size > 0.06)
@@ -534,13 +594,13 @@ int main(int argc, char **argv)
   
   
   #ifdef COLOR_VISUALIZE
-  // Initialize new viewer:
-  pcl::visualization::PCLVisualizer viewer("PCL Viewer");          // viewer initialization
+  // viewer initialization
   viewer.setCameraPosition(0,0,-2,0,-1,0,0);
   #endif
 
 
   // Initialize classifier for people detection:  
+   
    pcl::people::PersonClassifier<pcl::RGB> person_classifier;
   person_classifier.loadSVMFromFile(svm_filename);   // load trained SVM
   pcl::people::GroundBasedPeopleDetectionApp<PointT> people_detector;    // people detection object
@@ -551,14 +611,21 @@ int main(int argc, char **argv)
   people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0);
   
   people_detector.setMinimumDistanceBetweenHeads(heads_minimum_distance); 
+  cout << "eiei1" << endl; 
   std::vector<Eigen::Vector3f> pp_center_list;  
   ros::Rate loop_rate(10);
+  #ifdef COLOR_VISUALIZE
   while (ros::ok() && (!viewer.wasStopped()))
+  #else
+  while (ros::ok())
+  #endif
   {
 		if(new_cloud_available_flag)
 		{
-			VectorXf ground_coeffs = getGroundCoeffs();
-			std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
+			Eigen::VectorXf ground_coeffs = getGroundCoeffs();
+			
+        cout << "eiei2" << endl;
+      std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 			new_cloud_available_flag = false;
       
       PointCloudT::Ptr cloud (new PointCloudT);
@@ -575,13 +642,15 @@ int main(int argc, char **argv)
         std::vector< pcl::people::PersonCluster<PointT> > clusters;
         classifyperson(cloud,clusters,ground_coeffs,rgb_image);*/
 
-        ground_coeffs = people_detector.getGround();
+        //ground_coeffs = people_detector.getGround();
 		    // Draw cloud and people bounding boxes in the viewer:
-		    viewer.removeAllPointClouds();
+		    #ifdef COLOR_VISUALIZE
+        viewer.removeAllPointClouds();
 		    viewer.removeAllShapes();
 		    pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
 		    viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
-		    unsigned int k = 0;
+		    #endif
+        unsigned int k = 0;
 		    for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
 		    {
           /*Eigen::Vector3f centroid = rgb_intrinsics_matrix * (it->getTCenter());
@@ -597,14 +666,16 @@ int main(int argc, char **argv)
           if(it->getPersonConfidence() > min_confidence) // draw only people with confidence above a threshold
 		      {
 		          // draw theoretical person bounding box in the PCL viewer:
+              #ifdef COLOR_VISUALIZE
               it->drawTBoundingBox(viewer, k);
+              #endif
 		          k++;
               Eigen::Vector3f temp = it->getTCenter();
               if(temp(2) < detect_length)
               {
-                pp_center_list.push_back(it->getTCenter());
+                pp_center_list.push_back(temp);
+                //pp_center_list.push_back(temp);
               }
-              
               std::cout << "Person " << k << " Position : X = " << temp(0) << " ,Y = " << temp(1) << " ,Z = " << temp(2) << std::endl;
               //myfile << temp(0) << "," << temp(1) << "," << temp(2)<< "|";
           }
@@ -639,7 +710,7 @@ int main(int argc, char **argv)
           viewer.addSphere (pts, 0.1, 1, 0, 0.5, name.c_str());
           #endif
         }
-        
+        publish_PersonObjectArray(world_track_list);
         #ifdef COLOR_VISUALIZE
         viewer.spinOnce();
         #endif

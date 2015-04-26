@@ -12,7 +12,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
 
-#include <athome_msgs/navigation_goal.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <shape_msgs/Plane.h>

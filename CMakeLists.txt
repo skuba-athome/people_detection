@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   visualization_msgs
   message_generation
-  athome_msgs
   roslib
 )
 
@@ -34,7 +33,6 @@ generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
-  athome_msgs
   sensor_msgs
   )
 

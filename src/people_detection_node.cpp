@@ -52,7 +52,7 @@
 
 #define DEFAULT_RGBCAM "kinect"
 
-#define DEFAULT_CAM_LINK "/camera_rgb_optical_frame"
+#define DEFAULT_CAM_LINK "camera_rgb_optical_frame"
 
 #define DEFAULT_CLOUD_TOPIC "/camera/depth_registered/points"
 
@@ -100,8 +100,8 @@ tf::TransformListener* listener;
 
 
 std::string camera_optical_frame = DEFAULT_CAM_LINK;
-std::string robot_camera_frame = "/camera_link";
-std::string robot_frame = "/base_link";
+std::string robot_camera_frame = "camera_link";
+std::string robot_frame = "base_link";
 //std::string world_frame = "/odom";
 
 PointCloudT::Ptr cloud_obj (new PointCloudT);
@@ -272,8 +272,8 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
   pubmsg.header.frame_id = robot_frame;
 
   //Transform Publish point
-  Eigen::Matrix4f tfmat = getHomogeneousMatrix(robot_frame,camera_optical_frame);
-
+  //Eigen::Matrix4f tfmat = getHomogeneousMatrix(robot_frame,camera_optical_frame);
+  Eigen::Matrix4f tfmat = getHomogeneousMatrix(camera_optical_frame,robot_frame);
   for(int i=0 ;i < tracklist.size();i++)
   {
     if(tracklist[i].istrack == true)
@@ -604,7 +604,7 @@ int main(int argc, char **argv)
   //people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0); //for pcl 1.7.2
   
   people_detector.setMinimumDistanceBetweenHeads(heads_minimum_distance); 
-  cout << "eiei1" << endl; 
+
   std::vector<Eigen::Vector3f> pp_center_list;  
   ros::Rate loop_rate(10);
   #ifdef COLOR_VISUALIZE
@@ -617,7 +617,7 @@ int main(int argc, char **argv)
 		{
 			Eigen::VectorXf ground_coeffs = getGroundCoeffs();
 			
-        cout << "eiei2" << endl;
+
       std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 			new_cloud_available_flag = false;
       

@@ -142,6 +142,7 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_in)
 
 	new_cloud_available_flag = true;
 	//ROS_INFO("%ld",cloud_obj->size());
+  ROS_INFO("CLOUD LINK = %s",cloud_in->header.frame_id.c_str());
   std::cout << "----------------------------" << std::endl; 		
 }
 

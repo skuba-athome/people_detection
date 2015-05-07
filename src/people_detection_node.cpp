@@ -81,11 +81,12 @@ using namespace Eigen;
   float min_height = 0.8;
   float max_height = 2.3;
   double detect_length = DEFAULT_DETECT_LENGTH;
+  double track_distance = 0.3;
   // set default values for optional parameters:
   int min_points = 30;     // this value is adapted to the voxel size in method "compute"
   int max_points = 5000;   // this value is adapted to the voxel size in method "compute"
   float heads_minimum_distance = 0.2;
-
+  
 //===================================================================================
 
 
@@ -560,6 +561,8 @@ int main(int argc, char **argv)
   n.param( "detect_length", detect_length, DEFAULT_DETECT_LENGTH );
   ROS_INFO( "detect_length: %f", detect_length );
 
+  n.param( "track_distance", track_distance, 0.3 );
+  ROS_INFO( "tracck_distance: %f", track_distance );
   std::string svm_filename = ros::package::getPath("people_detection") + "/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
   std::cout << "svm_filename : " << svm_filename << std::endl; 
 	Eigen::Matrix3f rgb_intrinsics_matrix;
@@ -662,7 +665,7 @@ int main(int argc, char **argv)
           }
         }
      
-		    doMultiple_Tracking(pp_center_list,world_track_list,0.3);
+		    doMultiple_Tracking(pp_center_list,world_track_list,track_distance);
         checktracklist(world_track_list);
         pp_center_list.clear();
 

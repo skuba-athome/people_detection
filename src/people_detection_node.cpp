@@ -56,7 +56,13 @@
 
 #define DEFAULT_CLOUD_TOPIC "/camera/depth_registered/points"
 
-#define DEFAULT_DETECT_LENGTH 3.5
+#define DEFAULT_DETECT_RANGE 3.5
+#define DEFAULT_TRACK_DISTANCE 0.3 
+#define DEFAULT_MIN_CONFIDENCE -1.5
+
+#define DEFAULT_MIN_HEIGHT 0.8
+#define DEFAULT_MAX_HEIGHT 2.3
+
 
 #define COLOR_VISUALIZE //Comment this and Remake to turn-off visualizer
 
@@ -77,10 +83,13 @@ using namespace Eigen;
   std::string cloudtopic = DEFAULT_CLOUD_TOPIC;
   // Algorithm parameters:
   float voxel_size = 0.06;
-  float min_confidence = -1.5; // -1.5
+/*  float min_confidence = -1.5;
   float min_height = 0.8;
-  float max_height = 2.3;
-  double detect_length = DEFAULT_DETECT_LENGTH;
+  float max_height = 2.3;*/
+  double min_confidence = -1.5; // -1.5
+  double min_height = 0.8;
+  double max_height = 2.3;
+  double detect_range = DEFAULT_DETECT_RANGE;
   double track_distance = 0.3;
   // set default values for optional parameters:
   int min_points = 30;     // this value is adapted to the voxel size in method "compute"
@@ -93,21 +102,14 @@ using namespace Eigen;
 
 pcl::visualization::PCLVisualizer viewer("PCL Viewer");
 enum { COLS = 640, ROWS = 480 };
-
 ros::Publisher people_array_pub;
 ros::ServiceServer service;
-
 tf::TransformListener* listener;
-
-
 std::string camera_optical_frame = DEFAULT_CAM_LINK;
 std::string robot_camera_frame = "camera_link";
 std::string robot_frame = "base_link";
-//std::string world_frame = "/odom";
-
 PointCloudT::Ptr cloud_obj (new PointCloudT);
 bool new_cloud_available_flag = false;
-
 
 typedef struct{
   Eigen::Vector3f points;
@@ -558,11 +560,27 @@ int main(int argc, char **argv)
   n.param( "frameentrylifetime", frame_entry_lifetime, DEFAULT_FRAME_ENTRY_LIFETIME );
   ROS_INFO( "frameentrylifetime: %d", frame_entry_lifetime );
 
-  n.param( "detect_length", detect_length, DEFAULT_DETECT_LENGTH );
-  ROS_INFO( "detect_length: %f", detect_length );
+  n.param( "detect_range", detect_range, DEFAULT_DETECT_RANGE );
+  ROS_INFO( "detect_range: %f", detect_range );
 
-  n.param( "track_distance", track_distance, 0.3 );
-  ROS_INFO( "tracck_distance: %f", track_distance );
+  n.param( "track_distance", track_distance, DEFAULT_TRACK_DISTANCE );
+  ROS_INFO( "track_distance: %f", track_distance );
+
+  n.param( "min_confidence", min_confidence, DEFAULT_MIN_CONFIDENCE );
+  ROS_INFO( "min_confidence: %f", min_confidence );
+
+  n.param( "min_height", min_height, DEFAULT_MIN_HEIGHT );
+  ROS_INFO( "min_height: %f", min_height);
+
+  n.param( "max_height", max_height, DEFAULT_MAX_HEIGHT );
+  ROS_INFO( "max_height: %f", max_height);
+
+
+
+
+
+
+
   std::string svm_filename = ros::package::getPath("people_detection") + "/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
   std::cout << "svm_filename : " << svm_filename << std::endl; 
 	Eigen::Matrix3f rgb_intrinsics_matrix;
@@ -572,10 +590,13 @@ int main(int argc, char **argv)
     rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
     
   }
-    // 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0; //131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0;
   else if(rgbcam == "logitech")
   {
     rgb_intrinsics_matrix << 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0;// Logitech C920 camera intrinsics
+  }
+  else if(rgbcam == "other")
+  {
+    rgb_intrinsics_matrix << 131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0; //Bhirawich Legacy
   }
   else
   {
@@ -592,7 +613,7 @@ int main(int argc, char **argv)
   
   #ifdef COLOR_VISUALIZE
   // viewer initialization
-  viewer.setCameraPosition(0,0,-2,0,-1,0,0);
+    viewer.setCameraPosition(0,0,-2,0,-1,0,0);
   #endif
 
 
@@ -655,7 +676,7 @@ int main(int argc, char **argv)
               #endif
 		          k++;
               Eigen::Vector3f temp = it->getTCenter();
-              if(temp(2) < detect_length)
+              if(temp(2) < detect_range)
               {
                 pp_center_list.push_back(temp);
              

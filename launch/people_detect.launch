@@ -1,13 +1,25 @@
 <launch>
 
-	  <node name="people_detection_node" pkg="people_detection" type="people_detection_node" />
-    	     	<param name="rgbcamera" type="string" value="kinect"/>
-    	    	<param name="cameralink" type="string" value="/camera_rgb_optical_frame"/>
+	  <node name="people_detection_node" pkg="people_detection" type="people_detection_node" output="screen" />
+    	
+	    <!-- Selecting RGB Intrinsic Parameter ("kinect", "logitech", "other") -->
+    	<param name="rgbcamera" type="string" value="kinect"/>
+		
 		<param name="frameoutcondition" type="int" value="12"/>
 		<param name="frameincondition" type="int" value="3"/>
 		<param name="frameentrylifetime" type="int" value="5"/>
-		<param name="detect_length" type="double" value="3.5"/>
-  <!--	</node> -->
-
+		
+		<!-- Range (from the camera front) in which we want to detect-->
+		<param name="detect_range" type="double" value="3.5"/>
+		
+		<!-- Maximum range to track between frame -->
+		<param name="track_distance" type="double" value="0.3"/>
+		
+		<!-- Confidence Threshold -->
+		<param name="min_confidence" type="double" value="-1.5"/>
+		
+		<!-- Person's Height -->
+		<param name="min_height" type="double" value="0.8"/>
+		<param name="max_height" type="double" value="2.35"/>
 
 </launch>

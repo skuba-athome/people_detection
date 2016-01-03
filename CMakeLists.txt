@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(people_detection)
 find_package(cmake_modules REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   geometry_msgs
 #  VTK
 # pcl
@@ -16,8 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   roslib
 )
-
-
 
 add_message_files(
     FILES

@@ -311,9 +311,6 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
 
 bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::vector<person> &world, float disTH)
 {
-  
-  
-
   std::vector<person> world_temp(world);
 
   if(!world_temp.empty())
@@ -450,30 +447,34 @@ void checktracklist(std::vector<person> &tracklist)
     {
       tracklist.erase(tracklist.begin() + i);
     }
-    //New Person checkframe
-    if(tracklist[i].istrack == false)
+    else
     {
-      //Lost Track of new entry frame
-      if( (tracklist[i].framesage >= frame_entry_lifetime))
+      //New Person checkframe
+      if(tracklist[i].istrack == false)
       {
-        if(tracklist[i].frameincond <= 0)
+        //Lost Track of new entry frame
+        if( (tracklist[i].framesage >= frame_entry_lifetime))
         {
-          tracklist.erase(tracklist.begin() + i);
+          if(tracklist[i].frameincond <= 0)
+          {
+            tracklist.erase(tracklist.begin() + i);
+          }
+          else
+          {
+            tracklist[i].istrack = true;
+          }
         }
         else
         {
-          tracklist[i].istrack = true;
+          tracklist[i].framesage++;
         }
-      }
-      else
-      {
-        tracklist[i].framesage++;
-      }
     }
     else
     {
       tracklist[i].framesage++;
     }
+  }
+    
   }
 }
 

@@ -172,7 +172,7 @@ Eigen::Vector3f generateTrackerColor()
   return color;
 }
 
-float computenorm(Eigen::Vector3f A,Eigen::Vector3f B)
+float compute_norm3(Eigen::Vector3f A, Eigen::Vector3f B)
 {
   float delx2 = (A(0)-B(0))*(A(0)-B(0));
   float dely2 = (A(1)-B(1))*(A(1)-B(1));
@@ -197,7 +197,7 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
       while(!pp_newcenter_list.empty())
       {
         //float min = ( world_temp[0].points - pp_newcenter_list[0] ).squaredNorm();
-         float min = computenorm(world_temp[0].points,pp_newcenter_list[0]);
+         float min = compute_norm3(world_temp[0].points, pp_newcenter_list[0]);
         int   index[] = {0,0};
         //cout << "size world = " << world_temp.size() << endl << "size center = " << pp_newcenter_list.size() <<endl;
         
@@ -206,7 +206,7 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
           for(int j=0; j < pp_newcenter_list.size();j++ )
           {
            // nn_matching_table(i,j) = ( world_temp[i].points - pp_newcenter_list[j] ).squaredNorm();
-            nn_matching_table(i,j) = computenorm(world_temp[i].points,pp_newcenter_list[j]);
+            nn_matching_table(i,j) = compute_norm3(world_temp[i].points, pp_newcenter_list[j]);
             if(nn_matching_table(i,j) < min )
             {
               //update min finding nearest neighbour

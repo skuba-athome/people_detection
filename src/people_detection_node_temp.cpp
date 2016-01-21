@@ -12,7 +12,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/Bool.h>
 
-#include <athome_msgs/navigation_goal.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <shape_msgs/Plane.h>
@@ -53,11 +52,17 @@
 
 #define DEFAULT_RGBCAM "kinect"
 
-#define DEFAULT_CAM_LINK "/camera_rgb_optical_frame"
+#define DEFAULT_CAM_LINK "camera_rgb_optical_frame"
 
 #define DEFAULT_CLOUD_TOPIC "/camera/depth_registered/points"
 
-#define DEFAULT_DETECT_LENGTH 3.5
+#define DEFAULT_DETECT_RANGE 3.5
+#define DEFAULT_TRACK_DISTANCE 0.3 
+#define DEFAULT_MIN_CONFIDENCE -1.5
+
+#define DEFAULT_MIN_HEIGHT 0.8
+#define DEFAULT_MAX_HEIGHT 2.3
+
 
 #define COLOR_VISUALIZE //Comment this and Remake to turn-off visualizer
 
@@ -78,36 +83,32 @@ using namespace Eigen;
   std::string cloudtopic = DEFAULT_CLOUD_TOPIC;
   // Algorithm parameters:
   float voxel_size = 0.06;
-  float min_confidence = -1.5; // -1.5
+/*  float min_confidence = -1.5;
   float min_height = 0.8;
-  float max_height = 2.3;
-  double detect_length = DEFAULT_DETECT_LENGTH;
+  float max_height = 2.3;*/
+  double min_confidence = -1.5; // -1.5
+  double min_height = 0.8;
+  double max_height = 2.3;
+  double detect_range = DEFAULT_DETECT_RANGE;
+  double track_distance = 0.3;
   // set default values for optional parameters:
   int min_points = 30;     // this value is adapted to the voxel size in method "compute"
   int max_points = 5000;   // this value is adapted to the voxel size in method "compute"
   float heads_minimum_distance = 0.2;
-
+  
 //===================================================================================
-
 
 
 pcl::visualization::PCLVisualizer viewer("PCL Viewer");
 enum { COLS = 640, ROWS = 480 };
-
 ros::Publisher people_array_pub;
 ros::ServiceServer service;
-
 tf::TransformListener* listener;
-
-
 std::string camera_optical_frame = DEFAULT_CAM_LINK;
-std::string robot_camera_frame = "/camera_link";
-std::string robot_frame = "/base_link";
-//std::string world_frame = "/odom";
-
+std::string robot_camera_frame = "camera_link";
+std::string robot_frame = "base_link";
 PointCloudT::Ptr cloud_obj (new PointCloudT);
 bool new_cloud_available_flag = false;
-
 
 typedef struct{
   Eigen::Vector3f points;
@@ -143,6 +144,7 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_in)
 
 	new_cloud_available_flag = true;
 	//ROS_INFO("%ld",cloud_obj->size());
+  ROS_INFO("CLOUD LINK = %s",cloud_in->header.frame_id.c_str());
   std::cout << "----------------------------" << std::endl; 		
 }
 
@@ -258,14 +260,6 @@ Eigen::Vector3f generateTrackerColor()
   return color;
 }
 
-float computenorm(Eigen::Vector3f A,Eigen::Vector3f B)
-{
-  float delx2 = (A(0)-B(0))*(A(0)-B(0));
-  float dely2 = (A(1)-B(1))*(A(1)-B(1));
-  float delz2 = (A(2)-B(2))*(A(2)-B(2));   
-  return sqrt(delx2+dely2+delz2);
-}
-
 void publish_PersonObjectArray(std::vector<person> &tracklist)
 {
   people_detection::PersonObjectArray pubmsg;
@@ -273,18 +267,18 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
   pubmsg.header.frame_id = robot_frame;
 
   //Transform Publish point
-  Eigen::Matrix4f tfmat = getHomogeneousMatrix(robot_frame,camera_optical_frame);
-
+  //Eigen::Matrix4f tfmat = getHomogeneousMatrix(robot_frame,camera_optical_frame);
+  Eigen::Matrix4f tfmat = getHomogeneousMatrix(camera_optical_frame,robot_frame);
   for(int i=0 ;i < tracklist.size();i++)
   {
     if(tracklist[i].istrack == true)
     {
         people_detection::PersonObject pers;
-        
+
         Eigen::Vector4f pubpts;
         pubpts << tracklist[i].points(0),tracklist[i].points(1),tracklist[i].points(2),1.0;
         pubpts = tfmat*pubpts;
-      /* 
+      /*
           pers.personpoints.x = tracklist[i].points(0);
           pers.personpoints.y = tracklist[i].points(1);
           pers.personpoints.z = tracklist[i].points(2);
@@ -299,8 +293,16 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
     }
   }
   people_array_pub.publish(pubmsg);
-  
 
+
+}
+
+float compute_norm3(Eigen::Vector3f A, Eigen::Vector3f B)
+{
+  float delx2 = (A(0)-B(0))*(A(0)-B(0));
+  float dely2 = (A(1)-B(1))*(A(1)-B(1));
+  float delz2 = (A(2)-B(2))*(A(2)-B(2));
+  return sqrt(delx2+dely2+delz2);
 }
 
 
@@ -308,9 +310,6 @@ void publish_PersonObjectArray(std::vector<person> &tracklist)
 
 bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::vector<person> &world, float disTH)
 {
-  
-  
-
   std::vector<person> world_temp(world);
 
   if(!world_temp.empty())
@@ -321,16 +320,16 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
       while(!pp_newcenter_list.empty())
       {
         //float min = ( world_temp[0].points - pp_newcenter_list[0] ).squaredNorm();
-         float min = computenorm(world_temp[0].points,pp_newcenter_list[0]);
+         float min = compute_norm3(world_temp[0].points, pp_newcenter_list[0]);
         int   index[] = {0,0};
         //cout << "size world = " << world_temp.size() << endl << "size center = " << pp_newcenter_list.size() <<endl;
-        
+
         for(int i=0; i< world_temp.size() ; i++)
         {
           for(int j=0; j < pp_newcenter_list.size();j++ )
           {
            // nn_matching_table(i,j) = ( world_temp[i].points - pp_newcenter_list[j] ).squaredNorm();
-            nn_matching_table(i,j) = computenorm(world_temp[i].points,pp_newcenter_list[j]);
+            nn_matching_table(i,j) = compute_norm3(world_temp[i].points, pp_newcenter_list[j]);
             if(nn_matching_table(i,j) < min )
             {
               //update min finding nearest neighbour
@@ -352,12 +351,12 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
         }
         cout << endl;
 
-       
+
         if((min < disTH) && (!world_temp.empty())) //still track
         {
           cout << "min => " << min << endl;
           for(int k = 0; k < world.size() ; k++)
-          { 
+          {
             if(world[k].id == world_temp[index[0]].id )
             {
               world[k].points = pp_newcenter_list[index[1]];
@@ -372,7 +371,7 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
          // cout << "delete index : " << endl << "Worldtemp = "   << index[0]<< " ,newcenter = " << index[1] << endl;
         }
         //find all nearest neighbour matching
-        else //2 points too far 
+        else //2 points too far
         {
           //append to be newpoint to add to world
           person temp;
@@ -390,7 +389,7 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
           if(!world_temp.empty())
           {
             world_temp.erase(world_temp.begin() + index[0]);
-          }  
+          }
           pp_newcenter_list.erase(pp_newcenter_list.begin() + index[1]);
         }
       }
@@ -411,11 +410,11 @@ bool doMultiple_Tracking(std::vector<Eigen::Vector3f> &pp_newcenter_list,std::ve
             {
               if(world[j].id == world_temp[i].id) --world[j].frameincond;
             }
-   
-          }  
+
+          }
         }
       }
-      
+
     }
     else
     {
@@ -447,30 +446,34 @@ void checktracklist(std::vector<person> &tracklist)
     {
       tracklist.erase(tracklist.begin() + i);
     }
-    //New Person checkframe
-    if(tracklist[i].istrack == false)
+    else
     {
-      //Lost Track of new entry frame
-      if( (tracklist[i].framesage >= frame_entry_lifetime))
+      //New Person checkframe
+      if(tracklist[i].istrack == false)
       {
-        if(tracklist[i].frameincond <= 0)
+        //Lost Track of new entry frame
+        if( (tracklist[i].framesage >= frame_entry_lifetime))
         {
-          tracklist.erase(tracklist.begin() + i);
+          if(tracklist[i].frameincond <= 0)
+          {
+            tracklist.erase(tracklist.begin() + i);
+          }
+          else
+          {
+            tracklist[i].istrack = true;
+          }
         }
         else
         {
-          tracklist[i].istrack = true;
+          tracklist[i].framesage++;
         }
-      }
-      else
-      {
-        tracklist[i].framesage++;
-      }
     }
     else
     {
       tracklist[i].framesage++;
     }
+  }
+    
   }
 }
 
@@ -542,12 +545,6 @@ int main(int argc, char **argv)
    listener = new tf::TransformListener();
  
  //LOGITECH+KINECTDEPTH //ros::Subscriber cloub_sub = n.subscribe("/depth_registered/depth_registered/points", 1, cloudCallback); 
- 
- /*Save detect point to file*/
- /* ofstream myfile;
-  std::string writefilename = ros::package::getPath("people_detection") + "/sandbox/data1people2.txt";
-  myfile.open(writefilename.c_str()); */
-
   n.param<std::string>( "rgbcamera", rgbcam, DEFAULT_RGBCAM);
   ROS_INFO( "rgbcamera: %s", rgbcam.c_str() );
 
@@ -563,22 +560,39 @@ int main(int argc, char **argv)
   n.param( "frameentrylifetime", frame_entry_lifetime, DEFAULT_FRAME_ENTRY_LIFETIME );
   ROS_INFO( "frameentrylifetime: %d", frame_entry_lifetime );
 
-  n.param( "detect_length", detect_length, DEFAULT_DETECT_LENGTH );
-  ROS_INFO( "detect_length: %f", detect_length );
+  n.param( "detect_range", detect_range, DEFAULT_DETECT_RANGE );
+  ROS_INFO( "detect_range: %f", detect_range );
+
+  n.param( "track_distance", track_distance, DEFAULT_TRACK_DISTANCE );
+  ROS_INFO( "track_distance: %f", track_distance );
+
+  n.param( "min_confidence", min_confidence, DEFAULT_MIN_CONFIDENCE );
+  ROS_INFO( "min_confidence: %f", min_confidence );
+
+  n.param( "min_height", min_height, DEFAULT_MIN_HEIGHT );
+  ROS_INFO( "min_height: %f", min_height);
+
+  n.param( "max_height", max_height, DEFAULT_MAX_HEIGHT );
+  ROS_INFO( "max_height: %f", max_height);
+
+
 
   std::string svm_filename = ros::package::getPath("people_detection") + "/trainedLinearSVMForPeopleDetectionWithHOG.yaml";
   std::cout << "svm_filename : " << svm_filename << std::endl; 
-	Eigen::Matrix3f rgb_intrinsics_matrix;
+  Eigen::Matrix3f rgb_intrinsics_matrix;
 
   if(rgbcam == "kinect")
   {
     rgb_intrinsics_matrix << 525, 0.0, 319.5, 0.0, 525, 239.5, 0.0, 0.0, 1.0; // Kinect RGB camera intrinsics
     
   }
-    // 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0; //131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0;
   else if(rgbcam == "logitech")
   {
     rgb_intrinsics_matrix << 650.577610157369, 0.0, 331.019280291833, 0.0, 649.940553093797, 258.968249986678, 0.0, 0.0, 1.0;// Logitech C920 camera intrinsics
+  }
+  else if(rgbcam == "other")
+  {
+    rgb_intrinsics_matrix << 131.25, 0.0, 79.5, 0.0, 131.25, 59.5, 0.0, 0.0, 1.0; //Bhirawich Legacy
   }
   else
   {
@@ -595,23 +609,23 @@ int main(int argc, char **argv)
   
   #ifdef COLOR_VISUALIZE
   // viewer initialization
-  viewer.setCameraPosition(0,0,-2,0,-1,0,0);
+    viewer.setCameraPosition(0,0,-2,0,-1,0,0);
   #endif
 
 
   // Initialize classifier for people detection:  
    
-   pcl::people::PersonClassifier<pcl::RGB> person_classifier;
+  pcl::people::PersonClassifier<pcl::RGB> person_classifier;
   person_classifier.loadSVMFromFile(svm_filename);   // load trained SVM
   pcl::people::GroundBasedPeopleDetectionApp<PointT> people_detector;    // people detection object
   people_detector.setVoxelSize(voxel_size);                        // set the voxel size
   people_detector.setIntrinsics(rgb_intrinsics_matrix);            // set RGB camera intrinsic parameters
   people_detector.setClassifier(person_classifier);                // set person classifier
-  //people_detector.setHeightLimits(min_height, max_height);         // for pcl 1.7.1
-  people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0); //for pcl 1.7.2
+  people_detector.setHeightLimits(min_height, max_height);         // for pcl 1.7.1
+  //people_detector.setPersonClusterLimits (min_height, max_height,0.1,8.0); //for pcl 1.7.2
   
   people_detector.setMinimumDistanceBetweenHeads(heads_minimum_distance); 
-  cout << "eiei1" << endl; 
+
   std::vector<Eigen::Vector3f> pp_center_list;  
   ros::Rate loop_rate(10);
   #ifdef COLOR_VISUALIZE
@@ -624,7 +638,7 @@ int main(int argc, char **argv)
 		{
 			Eigen::VectorXf ground_coeffs = getGroundCoeffs();
 			
-        cout << "eiei2" << endl;
+
       std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 			new_cloud_available_flag = false;
       
@@ -638,32 +652,20 @@ int main(int argc, char **argv)
 		    people_detector.compute(clusters);                           // perform people detection
 
 		    //ground_coeffs = people_detector.getGround();                 // get updated floor coefficients
-       /* pcl::PointCloud<pcl::RGB>::Ptr rgb_image;
-        std::vector< pcl::people::PersonCluster<PointT> > clusters;
-        classifyperson(cloud,clusters,ground_coeffs,rgb_image);*/
-
-        //ground_coeffs = people_detector.getGround();
-		    // Draw cloud and people bounding boxes in the viewer:
+  
 		    #ifdef COLOR_VISUALIZE
-        viewer.removeAllPointClouds();
+            viewer.removeAllPointClouds();
 		    viewer.removeAllShapes();
 		    pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
 		    viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
 		    #endif
         unsigned int k = 0;
-		    for(std::vector<pcl::people::PersonCluster<PointT> >::iterator it = clusters.begin(); it != clusters.end(); ++it)
+          std::vector<pcl::people::PersonCluster<PointT> >::iterator it;
+          for(it = clusters.begin(); it != clusters.end(); ++it)
 		    {
-          /*Eigen::Vector3f centroid = rgb_intrinsics_matrix * (it->getTCenter());
-          centroid /= centroid(2);
-          Eigen::Vector3f top = rgb_intrinsics_matrix * (it->getTTop());
-          top /= top(2);
-          Eigen::Vector3f bottom = rgb_intrinsics_matrix * (it->getTBottom());
-          bottom /= bottom(2);
-            
-          //it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, rgb_intrinsics_matrix, false));
-          it->setPersonConfidence(person_classifier.evaluate(rgb_image, bottom, top, centroid, false));*/
 
-          if(it->getPersonConfidence() > min_confidence) // draw only people with confidence above a threshold
+
+              if(it->getPersonConfidence() > min_confidence) // draw only people with confidence above a threshold
 		      {
 		          // draw theoretical person bounding box in the PCL viewer:
               #ifdef COLOR_VISUALIZE
@@ -671,17 +673,17 @@ int main(int argc, char **argv)
               #endif
 		          k++;
               Eigen::Vector3f temp = it->getTCenter();
-              if(temp(2) < detect_length)
+              if(temp(2) < detect_range)
               {
                 pp_center_list.push_back(temp);
-                //pp_center_list.push_back(temp);
+             
               }
               std::cout << "Person " << k << " Position : X = " << temp(0) << " ,Y = " << temp(1) << " ,Z = " << temp(2) << std::endl;
-              //myfile << temp(0) << "," << temp(1) << "," << temp(2)<< "|";
-          }
+      
+              }
         }
-        //myfile << std::endl;
-		    doMultiple_Tracking(pp_center_list,world_track_list,0.3);
+     
+		    doMultiple_Tracking(pp_center_list,world_track_list,track_distance);
         checktracklist(world_track_list);
         pp_center_list.clear();
 
@@ -719,6 +721,6 @@ int main(int argc, char **argv)
   
 	ros::spinOnce();
 	}
-  //myfile.close();
+
   return 0;
 }

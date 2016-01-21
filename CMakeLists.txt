@@ -62,17 +62,21 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
 #add_executable(people_detection src/people_detection.cpp)
-add_executable(people_detection_node src/people_detection_node.cpp)
+#add_executable(people_detection_node src/people_detection_node_temp.cpp)
 add_executable(people_visualize src/people_detection_visualization.cpp)
+add_executable(people_detection_node src/people_detection_node.cpp src/PeopleDetector.cpp src/PeopleTracker.cpp)
+add_executable(people_detection_node_temp src/people_detection_node_temp.cpp)
 
 
 #target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_detection_node libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_visualize libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
+target_link_libraries(people_detection_node_temp libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 
 #target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
 target_link_libraries(people_detection_node ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 target_link_libraries(people_visualize ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(people_detection_node_temp ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 
 

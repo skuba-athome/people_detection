@@ -8,6 +8,7 @@
 
 #include <ros/ros.h>
 #include <ros/package.h>
+#include <boost/thread/thread.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.h>
 #include <pcl/console/parse.h>
@@ -77,13 +78,16 @@ class PeopleDetector {
 
 public:
     //Public Parameters
-    pcl::visualization::PCLVisualizer viewer;
+    //pcl::visualization::PCLVisualizer viewer;
 
     //Public Functions
     PeopleDetector();
     void initPeopleDetector(std::string svm_filename,Eigen::Matrix3f rgb_intrinsics_matrix, double minheight, double maxheight,
-                            double headmindist, double detect_range, bool viewer_enable);
+                             double min_condf, double headmindist, double detect_range);
     void getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::Vector3f>& center_list );
+    void addnewCloudtoViewer(PointCloudT::Ptr cloud, pcl::visualization::PCLVisualizer& viewer_obj);
+    void drawPeopleDetectBox(pcl::visualization::PCLVisualizer& viewer_obj);
+
 
     //Static Methods
     static float compute_norm3(Eigen::Vector3f A, Eigen::Vector3f B);
@@ -96,6 +100,7 @@ private:
     Eigen::Matrix3f rgb_intrinsics_matrix;
     pcl::people::PersonClassifier<pcl::RGB> person_classifier;
     pcl::people::GroundBasedPeopleDetectionApp<PointT> people_detector;
+    std::vector<pcl::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
     //std::vector<Eigen::Vector3f> pp_center_list; //buffer for newly detected ppl center
     bool color_visualization;
     double min_confidence;
@@ -106,7 +111,6 @@ private:
     bool ui_enable;
     std::string camera_optical_frame;
     std::string robot_frame;
-
 
     //Private Functions
     Eigen::Matrix4f getHomogeneousMatrix(std::string input_frame,std::string des_frame);

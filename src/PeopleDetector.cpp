@@ -4,8 +4,6 @@
 
 #include "PeopleDetector.h"
 
-//TODO -- CHANGE COLOR VISUALIZATION AS ROS PARAMETERS
-
 using namespace Eigen;
 
 //---------------Public---------------------
@@ -16,7 +14,7 @@ PeopleDetector::PeopleDetector()
 }
 
 void PeopleDetector::initPeopleDetector(std::string svm_filename,Eigen::Matrix3f rgb_intrinsics_matrix, double minheight, double maxheight,
-                                        double headmindist, double detectrange, bool viewer_enable)
+                                         double min_condf, double headmindist, double detectrange)
 {
     float voxel_size = 0.06;
 
@@ -24,16 +22,18 @@ void PeopleDetector::initPeopleDetector(std::string svm_filename,Eigen::Matrix3f
     this->min_height = minheight;
     this->max_height = maxheight;
     this->detect_range = detectrange;
+    this->min_confidence = min_condf;
 
-    if(viewer_enable)
+    /*if(viewer_enable)
     {
         this->ui_enable = true;
         this->viewer = pcl::visualization::PCLVisualizer("PCL Viewer");
+        this->viewer.setCameraPosition(0,0,-2,0,-1,0,0);
     }
     else
     {
         this->ui_enable = false;
-    }
+    }*/
 
     this->person_classifier.loadSVMFromFile(svm_filename);   // load trained SVM
     this->people_detector.setVoxelSize(voxel_size);                        // set the voxel size
@@ -55,46 +55,50 @@ void PeopleDetector::getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::
     std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
 
     // Perform people detection on the new cloud:
-    std::vector<pcl::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
+    this->clusters.clear();
     this->people_detector.setInputCloud(cloud);
     this->people_detector.setGround(ground_coeffs);                    // set floor coefficients
     this->people_detector.compute(clusters);                           // perform people detection
 
-
-    if(this->ui_enable)
-    {
-        this->viewer.removeAllPointClouds();
-        this->viewer.removeAllShapes();
-        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
-        this->viewer.addPointCloud<PointT> (cloud, rgb, "input_cloud");
-    }
     std::cout << "----------------------test----------------" << std::endl;
     unsigned int k = 0;
 
-    std::vector< pcl::people::PersonCluster<PointT> >::iterator it;
-    for(it = clusters.begin(); it != clusters.end(); ++it)
+    for(std::vector< pcl::people::PersonCluster<PointT> >::iterator it = this->clusters.begin(); it != this->clusters.end(); ++it)
     {
-        if(it->getPersonConfidence() > min_confidence) // draw only people with confidence above a threshold
+        //std::cout << "Minconfidence = "<< min_confidence << std::endl;
+        //std::cout << "get new confidence value = " << it->getPersonConfidence() << std::endl;
+        if(it->getPersonConfidence() > this->min_confidence) // draw only people with confidence above a threshold
         {
-            // draw theoretical person bounding box in the PCL viewer:
-
-
-            if(this-> ui_enable)
-                it->drawTBoundingBox(viewer, k);
-
             k++;
             Eigen::Vector3f temp = it->getTCenter();
-            if(temp(2) < detect_range)
-            {
+            if(temp(2) < this->detect_range)
                 center_list.push_back(temp);
-
-            }
             std::cout << "Person " << k << " Position : X = " << temp(0) << " ,Y = " << temp(1) << " ,Z = " << temp(2) << std::endl;
-
         }
     }
+    
+}
 
+void PeopleDetector::addnewCloudtoViewer(PointCloudT::Ptr cloud, pcl::visualization::PCLVisualizer& viewer_obj)
+{
+        viewer_obj.removeAllPointClouds();
+        viewer_obj.removeAllShapes();
+        pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(cloud);
+        viewer_obj.addPointCloud<PointT> (cloud, rgb, "input_cloud");
+}
 
+void PeopleDetector::drawPeopleDetectBox(pcl::visualization::PCLVisualizer& viewer_obj)
+{   
+    unsigned int k=0;
+    for(std::vector< pcl::people::PersonCluster<PointT> >::iterator it = this->clusters.begin(); it != this->clusters.end(); ++it)
+    {
+        if(it->getPersonConfidence() > this->min_confidence) // draw only people with confidence above a threshold
+        {
+        // draw theoretical person bounding box in the PCL viewer:
+            it->drawTBoundingBox(viewer_obj, k);
+            k++;
+        }
+    }
 }
 
 //--------------------------------------- Static Method ----------------------------------------------------------
@@ -109,7 +113,6 @@ void PeopleDetector::getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::
     while( is >> value ) {
         intrinsic.push_back(value);
     }
-
     if (intrinsic.size() < 9) {
         ROS_WARN("Provided RGB CAM Intrinsic Parameters size less than 3x3, Using Default Value (KINECT)");
         intrinsic.clear();
@@ -117,7 +120,6 @@ void PeopleDetector::getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::
                         0.0, 525, 239.5,
                         0.0, 0.0, 1.0;
     }
-
     else
     {
         rgb_intrinsic << intrinsic[0], intrinsic[1], intrinsic[2],
@@ -126,7 +128,6 @@ void PeopleDetector::getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::
     }
 
     return rgb_intrinsic;
-
 }
 
 
@@ -153,10 +154,8 @@ Eigen::Matrix4f PeopleDetector::getHomogeneousMatrix(std::string input_frame, st
     catch (tf::TransformException ex){
         ROS_ERROR("%s",ex.what());
     }
-
     Eigen::Matrix4f T;
     pcl_ros::transformAsMatrix(transform,T);
-
     return T;
 }
 

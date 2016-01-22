@@ -1,7 +1,7 @@
 <launch>
 	<!-- New Version of Launch File for Robocup 2016 -->
 	
-	  <node name="people_detection_node" pkg="people_detection" type="people_detection_node" output="screen" />
+	  <node name="people_detection_node" pkg="people_detection" type="people_detection_node" output="screen">
 
     	<!-- Camera Intrinsic -->
     	<param name="rgb_intrinsic" type="string" value="525 0.0 319.5 0.0 525 239.5 0.0 0.0 1.0"/>
@@ -31,7 +31,9 @@
 		<param name="head_min_distance" type="double" value="0.2"/>
 
 		<!-- ENABLE USER INTERFACE -->
-		<param name="ui" type="boolean" value="true"/>
+		<param name="ui" type="boolean" value="false"/>
+
+       </node>
 
 		
 

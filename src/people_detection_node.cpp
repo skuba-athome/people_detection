@@ -8,6 +8,9 @@
 #include "PeopleDetector.h"
 #include "PeopleTracker.h"
 
+#include <pcl/visualization/pcl_visualizer.h>
+#include <boost/thread/thread.hpp>
+
 #include <people_detection/PersonObject.h>
 #include <people_detection/PersonObjectArray.h>
 #include <people_detection/ClearPeopleTracker.h>
@@ -15,6 +18,8 @@
 #define DEFAULT_CLOUD_TOPIC "/camera/depth_registered/points"
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
+
+
 
 class PeopleDetectionRunner{
     private:
@@ -26,10 +31,12 @@ class PeopleDetectionRunner{
         bool new_cloud_available_flag;
         PeopleDetector ppl_detector;
         std::vector<person> world_track_list;
-
-
+        //pcl::visualization::PCLVisualizer viewer("PCL Viewer");
+        pcl::visualization::PCLVisualizer viewer;
 
     public:
+        
+        bool ui_enable;
 
         PeopleDetectionRunner():
                 nh("~"),
@@ -42,22 +49,21 @@ class PeopleDetectionRunner{
                     double max_height;
                     double detect_range;
                     double head_min_dist;
-                    bool ui_enable;
-
+                    
                     //Init ROS NODE
                     this->cloub_sub = nh.subscribe(DEFAULT_CLOUD_TOPIC, 1, &PeopleDetectionRunner::cloudCallback, this);
-                    this->people_array_pub = nh.advertise<people_detection::PersonObjectArray>("peoplearray", 10);
+                    this->people_array_pub = nh.advertise<people_detection::PersonObjectArray>("peoplearray", 1);
                     this->service = nh.advertiseService("/clearpeopletracker", &PeopleDetectionRunner::cleartrackCallback, this);
 
                     //INIT ROS PARAM
-
                     std::string ref_file_path;
                     nh.param<std::string>( "ref_svm_path", ref_file_path, "/trainedLinearSVMForPeopleDetectionWithHOG.yaml");
                     std::string svm_filename = ros::package::getPath("people_detection") + ref_file_path;
                     ROS_INFO( "ref_svm_path: %s", ref_file_path.c_str() );
 
                     std::string string_intrinsic;
-                    nh.param<std::string>( "rgb_intrinsic", string_intrinsic, "525 0.0 319.5 0.0 525 239.5 0.0 0.0 1.0"); //Default = Kinect RGB Intrinsic Params
+                    nh.param<std::string>( "rgb_intrinsic", string_intrinsic, "525 0.0 319.5 0.0 525 239.5 0.0 0.0 1.0"); 
+                    //Default = Kinect RGB Intrinsic Params
                     Eigen::Matrix3f rgb_intrinsic = PeopleDetector::IntrinsicParamtoMatrix3f(string_intrinsic);
                     ROS_INFO( "rgb_intrinsic: %s", string_intrinsic.c_str() );
 
@@ -79,24 +85,42 @@ class PeopleDetectionRunner{
                     nh.param( "head_min_distance", head_min_dist, DEFAULT_HEAD_MINIMUM_DISTANCE );
                     ROS_INFO( "head_min_distance: %lf", head_min_dist);
 
-                    nh.param( "ui", ui_enable, true);
-                    ROS_INFO( "ui_enable: %d", ui_enable);
+                    nh.param( "ui", this->ui_enable, true);
+                    ROS_INFO( "ui_enable: %d", this->ui_enable);
 
-                    //Init other parameters
-                    this->ppl_detector.initPeopleDetector(svm_filename, rgb_intrinsic,min_height, max_height, head_min_dist, detect_range, ui_enable);
+                    //Init People Detector
+                    this->ppl_detector.initPeopleDetector(svm_filename, rgb_intrinsic,min_height, max_height, 
+                                                            min_confidence,head_min_dist, detect_range);
+                    //Init PCL Viewer
+                    if(this->ui_enable)
+                    {
+                        viewer = pcl::visualization::PCLVisualizer("PCL Viewer");
+                        viewer.setCameraPosition(0,0,-2,0,-1,0,0);
+                    }
                 };
 
         void execute()
         {
             if(this->new_cloud_available_flag)
             {
-                std::vector<Eigen::Vector3f> tmp_center_list;
+                std::vector<Eigen::Vector3f> tmp_center_list;                
                 this->ppl_detector.getPeopleCenter(this->cloud_obj,tmp_center_list);
+                std::cout << "HHHHHHHHHHHHH 11111111111" << std::endl;
+                
+                if(this->ui_enable)
+                {
+                    this->ppl_detector.addnewCloudtoViewer(this->cloud_obj,viewer);
+                    this->ppl_detector.drawPeopleDetectBox(viewer);
 
-                this->ppl_detector.viewer.spinOnce();
+                    if(!viewer.wasStopped())
+                        viewer.spinOnce();
+                    else
+                        ROS_WARN("----Viewer has been Stopped----");
+                }
+
                 this->new_cloud_available_flag = false;
             }
-
+ 
         }
 
         void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& cloud_in)
@@ -134,8 +158,6 @@ int main( int argc, char **argv ) {
         ros::spinOnce();
         loop_rate.sleep();
     }
-
-
     return 0;
 
 }

@@ -5,8 +5,8 @@
 	    <!-- Selecting RGB Intrinsic Parameter ("kinect", "logitech", "other") -->
     	<param name="rgbcamera" type="string" value="kinect"/>
 		
-		<param name="frameoutcondition" type="int" value="10"/>
-		<param name="frameincondition" type="int" value="2"/>
+		<param name="frameoutcondition" type="int" value="15"/>
+		<param name="frameincondition" type="int" value="4"/>
 		<param name="frameentrylifetime" type="int" value="5"/>
 		
 		<!-- Range (from the camera front) in which we want to detect-->

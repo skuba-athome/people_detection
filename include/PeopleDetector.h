@@ -17,18 +17,11 @@
 #include <pcl/sample_consensus/sac_model_plane.h>
 #include <pcl/people/ground_based_people_detection_app.h>
 #include <pcl/point_types.h>
-#include <pcl/sample_consensus/sac_model_plane.h>
-#include <pcl/sample_consensus/ransac.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/people/person_cluster.h>
-#include <pcl/people/head_based_subcluster.h>
 #include <pcl/people/person_classifier.h>
-#include <people_detection/PersonObject.h>
-#include <people_detection/PersonObjectArray.h>
-#include <people_detection/ClearPeopleTracker.h>
+
 #include <sstream>
 #include <stdlib.h>
 
@@ -38,10 +31,6 @@
 #define DEFAULT_FRAME_ENTRY_LIFETIME 5
 
 #define KINECT "kinect"
-
-#define DEFAULT_CAM_LINK "camera_rgb_optical_frame"
-#define DEFAULT_ROBOT_LINK "base_link"
-
 
 
 #define DEFAULT_DETECT_RANGE 3.5
@@ -62,37 +51,27 @@
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
-typedef struct{
-    Eigen::Vector3f points;
-    Eigen::Vector3f color;
-    int id;
-    int framesage;
-    int frameincond;
-    int framelostlifetime;
-    bool istrack;
-}person;
-
 
 
 class PeopleDetector {
 
 public:
     //Public Parameters
-    //pcl::visualization::PCLVisualizer viewer;
+    std::string camera_optical_frame;
+    std::string robot_frame;
 
     //Public Functions
     PeopleDetector();
     void initPeopleDetector(std::string svm_filename,Eigen::Matrix3f rgb_intrinsics_matrix, double minheight, double maxheight,
                              double min_condf, double headmindist, double detect_range);
     void getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::Vector3f>& center_list );
-    void addnewCloudtoViewer(PointCloudT::Ptr cloud, pcl::visualization::PCLVisualizer& viewer_obj);
-    void drawPeopleDetectBox(pcl::visualization::PCLVisualizer& viewer_obj);
+    void addNewCloudToViewer(PointCloudT::Ptr cloud, pcl::visualization::PCLVisualizer::Ptr viewer_obj);
+    void drawPeopleDetectBox(pcl::visualization::PCLVisualizer::Ptr viewer_obj);
+    void setRobotFrame(std::string camera_link,std::string robot_base_link);
 
 
     //Static Methods
-    static float compute_norm3(Eigen::Vector3f A, Eigen::Vector3f B);
     static Eigen::Matrix3f IntrinsicParamtoMatrix3f(std::string intrinsic_string);
-    //void setFrame(std::string robot,std::string camera_rgb);
 
 private:
     //Private Parameters
@@ -102,20 +81,16 @@ private:
     pcl::people::GroundBasedPeopleDetectionApp<PointT> people_detector;
     std::vector<pcl::people::PersonCluster<PointT> > clusters;   // vector containing persons clusters
     //std::vector<Eigen::Vector3f> pp_center_list; //buffer for newly detected ppl center
-    bool color_visualization;
     double min_confidence;
     double min_height;
     double max_height;
     double detect_range;
     double heads_minimum_distance;
     bool ui_enable;
-    std::string camera_optical_frame;
-    std::string robot_frame;
 
     //Private Functions
-    Eigen::Matrix4f getHomogeneousMatrix(std::string input_frame,std::string des_frame);
     Eigen::VectorXf getGroundCoeffs();
-    void extractRGBFromPointCloud (boost::shared_ptr<PointCloudT> input_cloud, pcl::PointCloud<pcl::RGB>::Ptr& output_cloud);
+
 
 };
 

@@ -5,21 +5,13 @@
 
     	<!-- Camera Intrinsic -->
     	<param name="rgb_intrinsic" type="string" value="525 0.0 319.5 0.0 525 239.5 0.0 0.0 1.0"/>
-		
-		<param name="frameoutcondition" type="int" value="10"/>
-		<param name="frameincondition" type="int" value="2"/>
-		<param name="frameentrylifetime" type="int" value="5"/>
-
 
 		<!-- Trained SVM file reference path from package-->
 		<param name="ref_svm_path" type="string" value="/trainedLinearSVMForPeopleDetectionWithHOG.yaml"/>
 		
 		<!-- Range (from the camera front) in which we want to detect-->
 		<param name="detect_range" type="double" value="3.5"/>
-		
-		<!-- Maximum range to track between frame -->
-		<param name="track_distance" type="double" value="0.4"/>
-		
+
 		<!-- Confidence Threshold -->
 		<param name="min_confidence" type="double" value="-1.5"/>
 		
@@ -31,7 +23,15 @@
 		<param name="head_min_distance" type="double" value="0.2"/>
 
 		<!-- ENABLE USER INTERFACE -->
-		<param name="ui" type="boolean" value="false"/>
+		<param name="ui" type="boolean" value="true"/>
+
+        <!-- Maximum range to track between frame -->
+        <param name="track_distance" type="double" value="0.4"/>
+
+        <!-- Frame Count Condition -->
+		<param name="out_track_condition" type="int" value="10"/>
+        <param name="get_in_condition" type="int" value="2"/>
+        <param name="get_in_check" type="int" value="5"/>
 
        </node>
 

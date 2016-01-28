@@ -33,6 +33,12 @@
         <param name="get_in_condition" type="int" value="2"/>
         <param name="get_in_check" type="int" value="5"/>
 
+        <!-- Track Algorithm {0:SINGLE_NEAREST_NEIGHBOR_TRACKER, 1:MULTI_NEAREST_NEIGHBOR_TRACKER, 2:KALMAN_TRACKER} -->
+        <param name="track_algorithm" type="int" value="1"/>
+        <!-- Frame Count Method {0:UPDATE_NORMAL, 1:UPDATE_WITH_FRAME_COUNT} -->
+        <param name="frame_count_method" type="int" value="1"/>
+
+
        </node>
 
 		

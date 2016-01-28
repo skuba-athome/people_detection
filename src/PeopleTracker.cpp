@@ -77,6 +77,9 @@ void PeopleTracker::trackPeople(std::vector<person> &global_track_list, std::vec
 
 void PeopleTracker::addTrackerBall(pcl::visualization::PCLVisualizer::Ptr viewer_obj, std::vector<person> world_track_list)
 {
+    if(world_track_list.empty())
+    	return;
+
     for(int i=0; i< world_track_list.size();i++)
     {
         if(world_track_list[i].istrack == true)

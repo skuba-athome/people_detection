@@ -187,14 +187,15 @@ class PeopleDetectionRunner{
             {
                 std::vector<Eigen::Vector3f> tmp_center_list;
                 this->ppl_detector.getPeopleCenter(this->cloud_obj,tmp_center_list);
+                std::cout << "finish Detecting*********" << std::endl; 
                 this->ppl_tracker.trackPeople(this->world_track_list, tmp_center_list, this->track_algorithm, this->frame_count_method);
-
+                std::cout << "finish Tracking**********" << std::endl; 
                 if(this->ui_enable)
                 {
                     this->ppl_detector.addNewCloudToViewer(this->cloud_obj,viewer);
                     this->ppl_detector.drawPeopleDetectBox(viewer);
                     this->ppl_tracker.addTrackerBall(viewer,world_track_list);
-
+                    std::cout << "Complete Drawing UI**********" << std::endl;
                     if(!viewer->wasStopped())
                         viewer->spinOnce();
                     else
@@ -206,6 +207,7 @@ class PeopleDetectionRunner{
                 }
 
                 this->publishPersonObjectArray(this->world_track_list);
+                std::cout << "Publish Complete **********" << std::endl;
                 this->new_cloud_available_flag = false;
             }
         }

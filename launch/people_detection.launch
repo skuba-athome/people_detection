@@ -29,7 +29,7 @@
         <param name="track_distance" type="double" value="0.4"/>
 
         <!-- Frame Count Condition -->
-		<param name="out_track_condition" type="int" value="10"/>
+		<param name="out_track_condition" type="int" value="5"/>
         <param name="get_in_condition" type="int" value="2"/>
         <param name="get_in_check" type="int" value="5"/>
 

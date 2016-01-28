@@ -26,10 +26,6 @@
 #include <stdlib.h>
 
 
-#define DEFAULT_FRAME_OUT_CONDITION 12
-#define DEFAULT_FRAME_IN_CONDITION 3
-#define DEFAULT_FRAME_ENTRY_LIFETIME 5
-
 #define KINECT "kinect"
 
 

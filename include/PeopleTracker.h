@@ -43,20 +43,21 @@ class PeopleTracker
         //Use this before track: if wish to use list_update_method = UPDATE_WITH_FRAME_COUNT
         void setListUpdateConstraints(int getin, int getincheck, int getout);
         void setTrackThreshold(float distTH);
-        void trackPeople(std::vector<person> &global_track_list, std::vector<Eigen::Vector3f> new_center_list,int algorithm, int list_update_method);
+        void trackPeople(std::vector<person> &global_track_list, std::vector<Eigen::Vector3f> new_center_list,
+                                    int algorithm = SINGLE_NEAREST_NEIGHBOR_TRACKER, int list_update_method = UPDATE_NORMAL);
         void addTrackerBall(pcl::visualization::PCLVisualizer::Ptr viewer_obj, std::vector<person> world_track_list);
 
     private:
-        void track_usingSingleNN();
+        bool track_usingSingleNN(std::vector<person>& world, std::vector<Eigen::Vector3f>& pp_newcenter_list, float disTH = 0.35);
         void track_usingMultiNN(std::vector<person> &world, std::vector<Eigen::Vector3f> &pp_newcenter_list, std::vector<int>& lost_track_id, float disTH); //return lost tracked ids
-        void findMinInNearestNeighborTable(std::vector<Eigen::Vector3f> row, std::vector<Eigen::Vector3f> col, float& min, int (&index)[2]);
-        void updateMatchedNearestNeighbor(float min, int index[2],float distance_threshold, std::vector<person> &world,
+        void findMinInNearestNeighborTable(std::vector<Eigen::Vector3f> row, std::vector<Eigen::Vector3f> col, float& min, std::vector<int>& index);
+        void updateMatchedNearestNeighbor(float min, std::vector<int>& index,float distance_threshold, std::vector<person> &world,
                                             std::vector<person>& world_temp, std::vector<Eigen::Vector3f> &pp_new_center_list);
 
         void changeAllTrackTrue(std::vector<person>& world);
         void penaltyLostTrackPerson(std::vector<person>& world, std::vector<int> lost_found_id);
         void checkTrackList(std::vector<person> &track_list);
-        person createNewPerson(Eigen::Vector3f center_points);
+        person createNewPerson(Eigen::Vector3f center_points,  bool id_increment = true);
         Eigen::Vector3f generateTrackerColor();
         float compute_norm3(Eigen::Vector3f A, Eigen::Vector3f B);
 

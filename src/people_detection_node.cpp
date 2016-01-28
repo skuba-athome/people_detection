@@ -8,9 +8,6 @@
 #include "PeopleDetector.h"
 #include "PeopleTracker.h"
 
-#include <pcl/visualization/pcl_visualizer.h>
-#include <boost/thread/thread.hpp>
-
 #include <people_detection/PersonObject.h>
 #include <people_detection/PersonObjectArray.h>
 #include <people_detection/ClearPeopleTracker.h>
@@ -21,6 +18,8 @@
 
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
+const std::string algorithm_name[] = {"Single Nearest Neighbor", "Multi People Nearest Neighbor", "Kalman"};
+const std::string frame_count_method_name[] ={"NORMAL","With Frame Count"};
 
 
 
@@ -44,6 +43,8 @@ class PeopleDetectionRunner{
         int get_in_track;
         int get_in_check;
         int out_of_track;
+        int track_algorithm;
+        int frame_count_method;
         tf::TransformListener listener;
 
 
@@ -70,7 +71,6 @@ class PeopleDetectionRunner{
                     pers.personpoints.z = pubpts(2);
 
                     pers.id = tracklist[i].id;
-                    //pers.lifetime = tracklist[i].framesage;
                     pubmsg.persons.push_back(pers);
                 }
             }
@@ -156,6 +156,14 @@ class PeopleDetectionRunner{
                     nh.param( "out_track_condition", this->out_of_track, DEFAULT_OUT_OF_TRACK_CONDITION );
                     ROS_INFO( "out_track_condition: %d", this->out_of_track);
 
+                    nh.param( "track_algorithm", this->track_algorithm, MULTI_NEAREST_NEIGHBOR_TRACKER );
+                    ROS_INFO( "track_algorithm: %s", algorithm_name[this->track_algorithm].c_str());
+
+                    nh.param( "frame_count_method",this->frame_count_method, UPDATE_WITH_FRAME_COUNT);
+                    ROS_INFO( "frame_count_method: %s", frame_count_method_name[this->frame_count_method].c_str());
+
+
+
                     //Init People Detector
                     this->ppl_detector.initPeopleDetector(svm_filename, rgb_intrinsic, min_height, max_height,
                                                                                          min_confidence, head_min_dist, detect_range);
@@ -179,9 +187,7 @@ class PeopleDetectionRunner{
             {
                 std::vector<Eigen::Vector3f> tmp_center_list;
                 this->ppl_detector.getPeopleCenter(this->cloud_obj,tmp_center_list);
-                std::cout << "HHHHHHHHHHHHH 11111111111" << std::endl;
-
-                this->ppl_tracker.trackPeople(this->world_track_list, tmp_center_list, MULTI_NEAREST_NEIGHBOR_TRACKER, UPDATE_WITH_FRAME_COUNT);
+                this->ppl_tracker.trackPeople(this->world_track_list, tmp_center_list, this->track_algorithm, this->frame_count_method);
 
                 if(this->ui_enable)
                 {
@@ -195,7 +201,6 @@ class PeopleDetectionRunner{
                     {
                         ROS_WARN("----Viewer has been Stopped:Abort Viewer Processing----");
                         this->ui_enable = false;
-                        //delete viewer;
                     }
 
                 }
@@ -212,6 +217,7 @@ class PeopleDetectionRunner{
                 this->camera_frame = cloud_in->header.frame_id.c_str();
                 this->ppl_detector.setRobotFrame(this->camera_frame,this->robot_ref_frame);
                 this->init_cam_frame = true;
+                ROS_INFO("Camera frame: %s", this->camera_frame.c_str());
                 ROS_INFO("-----DONE: INIT ROBOT FRAME----");
             }
 

@@ -255,8 +255,9 @@ void PeopleTracker::track_usingMultiNN(std::vector<person>& world, std::vector<E
                 world_temp_points[i] = world_temp[i].points;
 
             this->findMinInNearestNeighborTable(world_temp_points, pp_newcenter_list, min, index);
+            std::cout << "Index of Nearest neighbour i,j : " << index[0] << "," << index[1] << std::endl;
             this->updateMatchedNearestNeighbor(min, index, disTH, world, world_temp, pp_newcenter_list);
-        }
+        }   
 
         //(Lost Track IDs)
         if(!world_temp.empty())

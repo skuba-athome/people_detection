@@ -10,7 +10,13 @@
 
 #include <people_detection/PersonObject.h>
 #include <people_detection/PersonObjectArray.h>
-#include <people_detection/ClearPeopleTracker.h>
+//#include <people_detection/ClearPeopleTracker.h>
+
+#include <actionlib/server/simple_action_server.h>
+#include <people_detection/ReInitTrackingAction.h>
+#include <people_detection/PausePeopleDetectionAction.h>
+#include <PeopleTracker.h>
+
 
 #define DEFAULT_CLOUD_TOPIC "/camera/depth_registered/points"
 #define DEFAULT_CAM_LINK "camera_rgb_optical_frame"
@@ -27,7 +33,7 @@ class PeopleDetectionRunner{
     private:
         ros::NodeHandle nh;
         ros::Publisher people_array_pub;
-        ros::ServiceServer service;
+        //ros::ServiceServer service;
         PointCloudT::Ptr cloud_obj;
         ros::Subscriber cloub_sub;
         bool new_cloud_available_flag;
@@ -45,7 +51,14 @@ class PeopleDetectionRunner{
         int out_of_track;
         int track_algorithm;
         int frame_count_method;
+        bool execute_enable;
         tf::TransformListener listener;
+        actionlib::SimpleActionServer<people_detection::ReInitTrackingAction> re_init_track_as_;
+        actionlib::SimpleActionServer<people_detection::PausePeopleDetectionAction> pause_track_as_;
+        std::string action_name_;
+        // create messages that are used to published feedback/result
+        people_detection::ReInitTrackingActionFeedback re_init_track_feedback_;
+        people_detection::ReInitTrackingActionResult re_init_track_result_;
 
 
         void publishPersonObjectArray(std::vector<person> &tracklist)
@@ -94,12 +107,16 @@ class PeopleDetectionRunner{
 
     public:
 
-        PeopleDetectionRunner():
+        PeopleDetectionRunner(std::string name):
                 nh("~"),
-                cloud_obj(new PointCloudT)
+                cloud_obj(new PointCloudT),
+                re_init_track_as_(nh, name, boost::bind(&PeopleDetectionRunner::executeReInitTrackActionCallback, this, _1), false),
+                action_name_(name),
+                pause_track_as_(nh, name, boost::bind(&PeopleDetectionRunner::executePauseTrackActionCallback, this, _1), false)
                 {
                     this->init_cam_frame = false;
                     this->new_cloud_available_flag = false;
+                    this->execute_enable = true;
                     double track_distance;
                     double min_confidence;
                     double min_height;
@@ -111,7 +128,7 @@ class PeopleDetectionRunner{
                     //Init ROS NODE
                     this->cloub_sub = nh.subscribe(DEFAULT_CLOUD_TOPIC, 1, &PeopleDetectionRunner::cloudCallback, this);
                     this->people_array_pub = nh.advertise<people_detection::PersonObjectArray>("peoplearray", 1);
-                    this->service = nh.advertiseService("/clearpeopletracker", &PeopleDetectionRunner::cleartrackCallback, this);
+                    //this->service = nh.advertiseService("/clearpeopletracker", &PeopleDetectionRunner::cleartrackCallback, this);
 
                     //INIT ROS PARAM
                     nh.param<std::string>( "ref_svm_path", ref_file_path, "/trainedLinearSVMForPeopleDetectionWithHOG.yaml");
@@ -127,7 +144,6 @@ class PeopleDetectionRunner{
 
                     nh.param( "detect_range", detect_range, DEFAULT_DETECT_RANGE );
                     ROS_INFO( "detect_range: %lf", detect_range );
-
 
                     nh.param( "min_confidence", min_confidence, DEFAULT_MIN_CONFIDENCE );
                     ROS_INFO( "min_confidence: %lf", min_confidence );
@@ -162,8 +178,6 @@ class PeopleDetectionRunner{
                     nh.param( "frame_count_method",this->frame_count_method, UPDATE_WITH_FRAME_COUNT);
                     ROS_INFO( "frame_count_method: %s", frame_count_method_name[this->frame_count_method].c_str());
 
-
-
                     //Init People Detector
                     this->ppl_detector.initPeopleDetector(svm_filename, rgb_intrinsic, min_height, max_height,
                                                                                          min_confidence, head_min_dist, detect_range);
@@ -183,19 +197,19 @@ class PeopleDetectionRunner{
 
         void execute()
         {
-            if((this->new_cloud_available_flag) && (this->init_cam_frame))
+            if((this->new_cloud_available_flag) && (this->init_cam_frame) && (this->execute_enable))
             {
                 std::vector<Eigen::Vector3f> tmp_center_list;
                 this->ppl_detector.getPeopleCenter(this->cloud_obj,tmp_center_list);
-                std::cout << "finish Detecting*********" << std::endl; 
+                //std::cout << "finish Detecting*********" << std::endl;
                 this->ppl_tracker.trackPeople(this->world_track_list, tmp_center_list, this->track_algorithm, this->frame_count_method);
-                std::cout << "finish Tracking**********" << std::endl; 
+                //std::cout << "finish Tracking**********" << std::endl;
                 if(this->ui_enable)
                 {
                     this->ppl_detector.addNewCloudToViewer(this->cloud_obj,viewer);
                     this->ppl_detector.drawPeopleDetectBox(viewer);
                     this->ppl_tracker.addTrackerBall(viewer,world_track_list);
-                    std::cout << "Complete Drawing UI**********" << std::endl;
+                    //std::cout << "Complete Drawing UI**********" << std::endl;
                     if(!viewer->wasStopped())
                         viewer->spinOnce();
                     else
@@ -206,8 +220,13 @@ class PeopleDetectionRunner{
 
                 }
 
+                for(int i=0; i< this->world_track_list.size();i++)
+                {
+                    if(this->world_track_list[i].istrack)
+                        std::cout << "Tracked ID : " << this->world_track_list[i].id << std::endl;
+                }
+
                 this->publishPersonObjectArray(this->world_track_list);
-                std::cout << "Publish Complete **********" << std::endl;
                 this->new_cloud_available_flag = false;
             }
         }
@@ -230,23 +249,43 @@ class PeopleDetectionRunner{
             this->new_cloud_available_flag = true;
         }
 
-        bool cleartrackCallback(people_detection::ClearPeopleTracker::Request &req,
+        void executeReInitTrackActionCallback(const people_detection::ReInitTrackingGoalConstPtr &goal)
+        {
+            this->execute_enable = false;
+            this->track_algorithm = goal->algorithm;
+            this->frame_count_method = goal->update_method;
+            this->world_track_list.clear();
+            people_detection::ReInitTrackingResultPtr result;
+            result->status = true;
+            re_init_track_as_.setSucceeded(*result);
+            this->execute_enable = true;
+        }
+
+        void executePauseTrackActionCallback(const people_detection::PausePeopleDetectionGoalConstPtr &goal)
+        {
+            this->execute_enable = ~(this->execute_enable);
+            if(this->execute_enable)
+                this->world_track_list.clear();
+        }
+
+
+        /*bool cleartrackCallback(people_detection::ClearPeopleTracker::Request &req,
                                 people_detection::ClearPeopleTracker::Response &res)
         {
             //Clear World Track List
             //TODO--Change to ActionLib
-            /*
-            world_track_list.clear();
-            lastavailable_id = 0;*/
-            return true;
-        }
+
+            //world_track_list.clear();
+            //lastavailable_id = 0;
+            //return true;
+        }*/
 
 };
 
 int main( int argc, char **argv )
 {
     ros::init( argc, argv, "people_detection");
-    PeopleDetectionRunner runner;
+    PeopleDetectionRunner runner(ros::this_node::getName());
     ros::Rate loop_rate(10);
     while(ros::ok())
     {

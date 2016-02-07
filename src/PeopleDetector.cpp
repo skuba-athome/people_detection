@@ -52,7 +52,7 @@ void PeopleDetector::getPeopleCenter(PointCloudT::Ptr cloud, std::vector<Eigen::
     }
 
     Eigen::VectorXf ground_coeffs = getGroundCoeffs();
-    std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
+    //std::cout << "Ground plane: " << ground_coeffs(0) << " " << ground_coeffs(1) << " " << ground_coeffs(2) << " " << ground_coeffs(3) << std::endl;
     // Perform people detection on the new cloud:
     this->clusters.clear();
     this->people_detector.setInputCloud(cloud);

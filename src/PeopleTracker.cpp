@@ -10,7 +10,8 @@
 PeopleTracker::PeopleTracker()
 {
     this->last_available_id = 1;
-    this->track_distance_threshold = 0.3; //
+    this->track_distance_threshold = 0.3;
+    this->single_track_reset_distance = 1.0;
 }
 
 void PeopleTracker::setListUpdateConstraints(int getin, int getincheck, int getout)
@@ -25,41 +26,35 @@ void PeopleTracker::setTrackThreshold(float distTH)
     this->track_distance_threshold = distTH;
 }
 
+void PeopleTracker::setSingleTrackResetDistance(float distTH)
+{
+    this->single_track_reset_distance = distTH;
+}
+
+void PeopleTracker::resetTrackID(void)
+{
+    this->last_available_id = 1;
+}
+
 
 
 void PeopleTracker::trackPeople(std::vector<person> &global_track_list, std::vector<Eigen::Vector3f> new_center_list,
                                     int algorithm, int list_update_method)
 {
-    if(new_center_list.empty())
-        return; //No Update
-
     std::vector<int> lost_track_id;
     if(algorithm == SINGLE_NEAREST_NEIGHBOR_TRACKER)
     {
         bool track_status = this->track_usingSingleNN(global_track_list, new_center_list, this->track_distance_threshold);
-        this->changeAllTrackTrue(global_track_list);
+        if(track_status)
+        {
+            lost_track_id.push_back(1);
+        }
+        //this->changeAllTrackTrue(global_track_list);
 
     }
     else if(algorithm == MULTI_NEAREST_NEIGHBOR_TRACKER)
     {
         this->track_usingMultiNN(global_track_list, new_center_list, lost_track_id ,this->track_distance_threshold);
-
-        if(list_update_method == UPDATE_WITH_FRAME_COUNT)
-        {
-            if(!lost_track_id.empty())
-                this->penaltyLostTrackPerson( global_track_list, lost_track_id);
-            this->checkTrackList(global_track_list);
-        }
-        else if(list_update_method == UPDATE_NORMAL)
-        {
-            this->changeAllTrackTrue(global_track_list);
-            return;
-        }
-        else
-        {
-            ROS_WARN("No Specified UPDATE METHOD: Abort");
-            return;
-        }
     }
     else if(algorithm == KALMAN_TRACKER)
     {
@@ -71,14 +66,57 @@ void PeopleTracker::trackPeople(std::vector<person> &global_track_list, std::vec
         return;
     }
 
+    if(list_update_method == UPDATE_WITH_FRAME_COUNT)
+    {
+        if(!lost_track_id.empty())
+            this->penaltyLostTrackPerson( global_track_list, lost_track_id);
+        this->checkTrackList(global_track_list);
+    }
+    else if(list_update_method == UPDATE_NORMAL)
+    {
+        this->updateFrameWithNormalMethod(global_track_list, lost_track_id);
+        return;
+    }
+    else
+    {
+        ROS_WARN("No Specified UPDATE METHOD: Abort");
+        return;
+    }
+
 
 
 }
 
 void PeopleTracker::addTrackerBall(pcl::visualization::PCLVisualizer::Ptr viewer_obj, std::vector<person> world_track_list)
 {
+    static std::vector<int> last_world_track_id;
+
     if(world_track_list.empty())
-    	return;
+    {
+        viewer_obj->removeAllShapes();
+        last_world_track_id.clear();
+        return;
+    }
+
+    //check lost found id & remove ball from UI
+    for(int i =0 ; i<last_world_track_id.size(); i++)
+        for(int j = 0; j< world_track_list.size(); j++)
+        {
+            if(last_world_track_id[i] == world_track_list[j].id)
+                last_world_track_id.erase(last_world_track_id.begin() + i);
+        }
+
+    if(!last_world_track_id.empty())
+    {
+        for(int i =0 ; i<last_world_track_id.size(); i++)
+        {
+            std::string name = "sphere" + last_world_track_id[i];
+            viewer_obj->removeShape(name.c_str());
+        }
+        std::cout << "-------------------------------" <<std::endl;
+    }
+
+    last_world_track_id.clear();
 
     for(int i=0; i< world_track_list.size();i++)
     {
@@ -91,9 +129,10 @@ void PeopleTracker::addTrackerBall(pcl::visualization::PCLVisualizer::Ptr viewer
             pts.x = out(0); pts.y = out(1); pts.z = out(2);
             viewer_obj->removeShape(name.c_str());
             viewer_obj->addSphere (pts, 0.1, world_track_list[i].color(0), world_track_list[i].color(1), world_track_list[i].color(2), name.c_str());
+            last_world_track_id.push_back(world_track_list[i].id);
         }
-
     }
+
 }
 
 
@@ -108,7 +147,7 @@ person PeopleTracker::createNewPerson(Eigen::Vector3f center_points, bool id_inc
         temp.id = this->last_available_id++;
     else if(!id_increment)
     {
-        this->last_available_id = 1; //Refresh ID to have only 1 value
+        //this->last_available_id = 1; //Refresh ID to have only 1 value
         temp.id = this->last_available_id;
     }
 
@@ -144,7 +183,7 @@ void PeopleTracker::findMinInNearestNeighborTable(std::vector<Eigen::Vector3f> r
         }
 
         //Debugging: Print Out Matching Table
-        std::cout <<"--Matiching Table--" << std::endl;
+       /* std::cout <<"--Matiching Table--" << std::endl;
         for(int i =0 ; i < row.size() ; i++)
         {
             for(int j =0 ; j < col.size() ; j++)
@@ -153,7 +192,7 @@ void PeopleTracker::findMinInNearestNeighborTable(std::vector<Eigen::Vector3f> r
             }
             std::cout << std::endl;
         }
-        std::cout << std::endl;
+        std::cout << std::endl;*/
 
 }
 
@@ -209,16 +248,15 @@ bool PeopleTracker::track_usingSingleNN(std::vector<person>& world, std::vector<
                 index = i;
             }
         }
-
         if (min < 9999.0f) //it is track
         {
-            world.clear();
-            world.push_back(this->createNewPerson(pp_newcenter_list[index], false));
+            //world.clear();
+            //world.push_back(this->createNewPerson(pp_newcenter_list[index], false));
+            world[0].points = pp_newcenter_list[index];
             return true;
         }
-        else;
+        else
             return false;
-
     }
     else
     {
@@ -230,14 +268,19 @@ bool PeopleTracker::track_usingSingleNN(std::vector<person>& world, std::vector<
         for(int i = 0 ; i < pp_newcenter_list.size();i++)
         {
             float tmp = this->compute_norm3(origin, pp_newcenter_list[i]);
-            if(tmp < min)
+            if((tmp < min) && (tmp <= this->single_track_reset_distance))
             {
                 min = tmp;
                 index = i;
             }
         }
-        world.push_back(this->createNewPerson(pp_newcenter_list[index], false));
-        return true;
+        if (min < 9999.0f) //it is track
+        {
+            world.push_back(this->createNewPerson(pp_newcenter_list[index], false));
+            return true;
+        }
+        else
+            return false;
     }
 }
 
@@ -248,19 +291,26 @@ void PeopleTracker::track_usingMultiNN(std::vector<person>& world, std::vector<E
     std::vector<person> world_temp(world);
     if(!world_temp.empty())
     {
-        while(!pp_newcenter_list.empty())
+        if(!pp_newcenter_list.empty())
         {
-            std::vector<Eigen::Vector3f> world_temp_points(world_temp.size());
-            float min;
-            //int index[2];
-            std::vector<int> index(2);
-            for(int i=0;i<world_temp.size();i++)
-                world_temp_points[i] = world_temp[i].points;
+            while(!pp_newcenter_list.empty())
+            {
+                std::vector<Eigen::Vector3f> world_temp_points(world_temp.size());
+                float min;
+                //int index[2];
+                std::vector<int> index(2);
+                for(int i=0;i<world_temp.size();i++)
+                    world_temp_points[i] = world_temp[i].points;
 
-            this->findMinInNearestNeighborTable(world_temp_points, pp_newcenter_list, min, index);
-            std::cout << "Index of Nearest neighbour i,j : " << index[0] << "," << index[1] << std::endl;
-            this->updateMatchedNearestNeighbor(min, index, disTH, world, world_temp, pp_newcenter_list);
-        }   
+                this->findMinInNearestNeighborTable(world_temp_points, pp_newcenter_list, min, index);
+                this->updateMatchedNearestNeighbor(min, index, disTH, world, world_temp, pp_newcenter_list);
+            }
+        }
+        else //No one Detected in this Frame, penalty all
+        {
+            for(int i=0; i < world_temp.size(); i++)
+                    lost_track_id.push_back(world_temp[i].id);
+        }
 
         //(Lost Track IDs)
         if(!world_temp.empty())
@@ -278,12 +328,23 @@ void PeopleTracker::track_usingMultiNN(std::vector<person>& world, std::vector<E
     }
 }
 
-void PeopleTracker::changeAllTrackTrue(std::vector<person>& world)
+void PeopleTracker::updateFrameWithNormalMethod(std::vector<person>& world, std::vector<int> lost_found_id)
 {
     //Forced Every single person to be tracked
     for(int i=0; i < world.size(); i++)
     {
         world[i].istrack = true;
+    }
+
+    //Delete all lost track frame
+    if(!lost_found_id.empty())
+    {
+        for(int i=0; i < lost_found_id.size(); i++)
+            for(int j=0; j< world.size(); j++)
+            {
+                if(world[j].id == lost_found_id[i])
+                    world.erase(world.begin() + j);
+            }
     }
 }
 

@@ -6,6 +6,7 @@
 #define PEOPLE_DETECTION_PEOPLE_TRACKER_H
 
 #include <cstdlib>
+#include <stdlib.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -45,6 +46,8 @@ class PeopleTracker
         void setTrackThreshold(float distTH);
         void trackPeople(std::vector<person> &global_track_list, std::vector<Eigen::Vector3f> new_center_list,
                                     int algorithm = SINGLE_NEAREST_NEIGHBOR_TRACKER, int list_update_method = UPDATE_NORMAL);
+        void setSingleTrackResetDistance(float disTH);
+        void resetTrackID(void);
         void addTrackerBall(pcl::visualization::PCLVisualizer::Ptr viewer_obj, std::vector<person> world_track_list);
 
     private:
@@ -54,7 +57,8 @@ class PeopleTracker
         void updateMatchedNearestNeighbor(float min, std::vector<int>& index,float distance_threshold, std::vector<person> &world,
                                             std::vector<person>& world_temp, std::vector<Eigen::Vector3f> &pp_new_center_list);
 
-        void changeAllTrackTrue(std::vector<person>& world);
+        //void changeAllTrackTrue(std::vector<person>& world);
+        void updateFrameWithNormalMethod(std::vector<person>& world, std::vector<int> lost_found_id);
         void penaltyLostTrackPerson(std::vector<person>& world, std::vector<int> lost_found_id);
         void checkTrackList(std::vector<person> &track_list);
         person createNewPerson(Eigen::Vector3f center_points,  bool id_increment = true);
@@ -67,6 +71,7 @@ class PeopleTracker
         int person_get_in_track_condition;
         int get_in_track_check_frame;
         float track_distance_threshold;
+        float single_track_reset_distance;
 
 
 

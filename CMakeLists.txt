@@ -4,8 +4,6 @@ find_package(cmake_modules REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   geometry_msgs
-#  VTK
-# pcl
   pcl_ros
   pcl_conversions
   roscpp
@@ -16,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   message_generation
   roslib
+  actionlib_msgs
 )
 
 add_message_files(
@@ -28,18 +27,25 @@ add_service_files(
     FILES
     ClearPeopleTracker.srv
 )
+
+add_action_files(
+        DIRECTORY action
+        FILES PausePeopleDetection.action ReInitTracking.action
+)
+
 generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
   sensor_msgs
+  actionlib_msgs
   )
 
 ###################################
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs pcl_ros pcl_conversions roscpp sensor_msgs shape_msgs std_msgs tf visualization_msgs
+  CATKIN_DEPENDS geometry_msgs pcl_ros pcl_conversions roscpp sensor_msgs shape_msgs std_msgs tf visualization_msgs actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -63,19 +69,16 @@ find_package(VTK REQUIRED)
 include_directories(${VTK_INCLUDE_DIRS})
 #add_executable(people_detection src/people_detection.cpp)
 #add_executable(people_detection_node src/people_detection_node_temp.cpp)
-add_executable(people_visualize src/people_detection_visualization.cpp)
 add_executable(people_detection_node src/people_detection_node.cpp src/PeopleDetector.cpp src/PeopleTracker.cpp)
 add_executable(people_detection_node_temp src/people_detection_node_temp.cpp)
 
 
 #target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_detection_node libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
-target_link_libraries(people_visualize libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_detection_node_temp libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 
 #target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
 target_link_libraries(people_detection_node ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-target_link_libraries(people_visualize ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 target_link_libraries(people_detection_node_temp ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 

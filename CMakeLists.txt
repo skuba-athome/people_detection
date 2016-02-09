@@ -70,8 +70,6 @@ include_directories(${VTK_INCLUDE_DIRS})
 #add_executable(people_detection src/people_detection.cpp)
 #add_executable(people_detection_node src/people_detection_node_temp.cpp)
 add_executable(people_detection_node src/people_detection_node.cpp src/PeopleDetector.cpp src/PeopleTracker.cpp)
-add_executable(people_detection_node_temp src/people_detection_node_temp.cpp)
-
 
 #target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_detection_node libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)

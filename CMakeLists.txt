@@ -73,13 +73,9 @@ add_executable(people_detection_node src/people_detection_node.cpp src/PeopleDet
 
 #target_link_libraries(people_detection libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 target_link_libraries(people_detection_node libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
-target_link_libraries(people_detection_node_temp libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)
 
 #target_link_libraries(people_detection ${pcl_ros_LIBRARIES})
 target_link_libraries(people_detection_node ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-target_link_libraries(people_detection_node_temp ${pcl_ros_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
-
 
 #add_executable(people_detection_original src/people_detection_modify.cpp)
 #target_link_libraries(people_detection_original libvtkCommon.so libvtkFiltering.so libvtkRendering.so)

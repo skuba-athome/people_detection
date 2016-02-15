@@ -201,15 +201,18 @@ class PeopleDetectionRunner{
             {
                 std::vector<Eigen::Vector3f> tmp_center_list;
                 this->ppl_detector.getPeopleCenter(this->cloud_obj,tmp_center_list);
-                //std::cout << "finish Detecting*********" << std::endl;
+                std::cout << "finish Detecting*********" << std::endl;
                 this->ppl_tracker.trackPeople(this->world_track_list, tmp_center_list, this->track_algorithm, this->frame_count_method);
-                //std::cout << "finish Tracking**********" << std::endl;
+                std::cout << "finish Tracking**********" << std::endl;
                 if(this->ui_enable)
                 {
+                    
                     this->ppl_detector.addNewCloudToViewer(this->cloud_obj,viewer);
+                    std::cout << "add New Cloud to Viewer**********" << std::endl;
                     this->ppl_detector.drawPeopleDetectBox(viewer);
+                    std::cout << "draw People Detect Box**********" << std::endl;
                     this->ppl_tracker.addTrackerBall(viewer,world_track_list);
-                    //std::cout << "Complete Drawing UI**********" << std::endl;
+                    std::cout << "Complete Drawing UI**********" << std::endl;
                     if(!viewer->wasStopped())
                         viewer->spinOnce();
                     else
@@ -228,6 +231,7 @@ class PeopleDetectionRunner{
 
                 this->publishPersonObjectArray(this->world_track_list);
                 this->new_cloud_available_flag = false;
+                std::cout << "----------------------------------------------" << std::endl;
             }
         }
 
@@ -284,7 +288,7 @@ class PeopleDetectionRunner{
 
 int main( int argc, char **argv )
 {
-    ros::init( argc, argv, "people_detection");
+    ros::init( argc, argv, "people_detection_node");
     PeopleDetectionRunner runner(ros::this_node::getName());
     ros::Rate loop_rate(10);
     while(ros::ok())

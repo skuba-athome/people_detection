@@ -38,9 +38,7 @@
         <!-- Frame Count Method {0:UPDATE_NORMAL, 1:UPDATE_WITH_FRAME_COUNT} -->
         <param name="frame_count_method" type="int" value="1"/>
 
-
+        <remap from="peoplearray" to="/people_detection/people_array"/>
        </node>
-
-		
 
 </launch>

@@ -55,6 +55,7 @@ void PeopleTracker::trackPeople(std::vector<person> &global_track_list, std::vec
     else if(algorithm == MULTI_NEAREST_NEIGHBOR_TRACKER)
     {
         this->track_usingMultiNN(global_track_list, new_center_list, lost_track_id ,this->track_distance_threshold);
+        std::cout << "Track Multi NN ********" << std::endl;
     }
     else if(algorithm == KALMAN_TRACKER)
     {
@@ -69,21 +70,21 @@ void PeopleTracker::trackPeople(std::vector<person> &global_track_list, std::vec
     if(list_update_method == UPDATE_WITH_FRAME_COUNT)
     {
         if(!lost_track_id.empty())
+        {
             this->penaltyLostTrackPerson( global_track_list, lost_track_id);
+            std::cout << "Penalty Lost Track ********" << std::endl;
+        }
         this->checkTrackList(global_track_list);
+        std::cout << "Check Track List********" << std::endl;
     }
     else if(list_update_method == UPDATE_NORMAL)
     {
         this->updateFrameWithNormalMethod(global_track_list, lost_track_id);
-        return;
     }
     else
     {
         ROS_WARN("No Specified UPDATE METHOD: Abort");
-        return;
     }
-
-
 
 }
 

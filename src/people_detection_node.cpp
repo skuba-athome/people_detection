@@ -270,6 +270,7 @@ class PeopleDetectionRunner{
             this->execute_enable = ~(this->execute_enable);
             if(this->execute_enable)
                 this->world_track_list.clear();
+            pause_track_as_.setSucceeded();
         }
 
 

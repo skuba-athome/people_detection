@@ -301,9 +301,12 @@ void PeopleTracker::track_usingMultiNN(std::vector<person>& world, std::vector<E
         if(!pp_newcenter_list.empty())
         {
             int j=1;
-            while(!pp_newcenter_list.empty())
+            while( (!pp_newcenter_list.empty()) || (!world_temp.empty()) )
             {
                 std::vector<Eigen::Vector3f> world_temp_points(world_temp.size());
+                if(world_temp_points.empty())
+                    break;
+                
                 float min;
                 //int index[2];
                 std::vector<int> index(2);

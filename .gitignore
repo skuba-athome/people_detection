@@ -1,0 +1,10 @@
+syntax: glob
+
+*.pyc
+*~
+build
+bin
+*.tmp
+CMakeFiles
+CMakeCache.txt
+.idea/

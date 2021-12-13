@@ -297,7 +297,7 @@ void PeopleTracker::track_usingMultiNN(std::vector<person>& world, std::vector<E
     std::vector<person> world_temp(world);
     if(!world_temp.empty())
     {
-        std::cout << "*******kuy 1" << std::endl;
+
         if(!pp_newcenter_list.empty())
         {
             int j=1;
@@ -313,38 +313,36 @@ void PeopleTracker::track_usingMultiNN(std::vector<person>& world, std::vector<E
                 std::vector<int> index(2);
                 for(int i=0;i<world_temp.size();i++)
                     world_temp_points[i] = world_temp[i].points;
-                std::cout << "*******kuy 2 : iteration = " << j << std::endl;
+         
                 this->findMinInNearestNeighborTable(world_temp_points, pp_newcenter_list, min, index);
-                std::cout << "*******kuy 3 : iteration = "<< j << std::endl;
                 this->updateMatchedNearestNeighbor(min, index, disTH, world, world_temp, pp_newcenter_list);
-                std::cout << "*******kuy 4 : iteration = "<< j++ << std::endl;
+                
             }
         }
         else //No one Detected in this Frame, penalty all
         {
-            std::cout << "*******kuy 5" << std::endl;
+   
             for(int i=0; i < world_temp.size(); i++)
                     lost_track_id.push_back(world_temp[i].id);
-            std::cout << "*******kuy 6" << std::endl;
+
         }
 
         //(Lost Track IDs)
         if(!world_temp.empty())
         {
-            std::cout << "*******wtf 1" << std::endl;
+
             for(int i=0; i < world_temp.size(); i++)
                 lost_track_id.push_back(world_temp[i].id);
-            std::cout << "*******wtf 2" << std::endl;
+ 
         }
     }
     else
     {
         //No one is tracked from the last frame re_init tracker list
-        std::cout << "*******ei 1" << std::endl;
+
         if(!pp_newcenter_list.empty())
         for(int i = 0 ; i < pp_newcenter_list.size();i++)
             world.push_back(this->createNewPerson(pp_newcenter_list[i]));
-        std::cout << "*******ei 2" << std::endl;
 
     }
 }
